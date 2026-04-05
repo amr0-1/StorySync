@@ -6,6 +6,7 @@ import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
+import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Settings screen with theme, data management, and account options
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -23,11 +24,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: colors.inkVoid,
       appBar: AppBar(
-        title: Text(
-          'Settings',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: colors.textPrimary,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppIcon.small(),
+            const SizedBox(width: AppDimensions.space8),
+            Text(
+              'Settings',
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
       body: ListView(
@@ -86,6 +94,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Center(
             child: Column(
               children: [
+                const AppIcon.medium(),
+                const SizedBox(height: AppDimensions.space12),
                 Text(
                   'StorySync',
                   style: AppTextStyles.titleMedium.copyWith(
@@ -181,11 +191,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }) {
     return ListTile(
       onTap: onTap,
-      leading: Icon(
-        icon,
-        color: iconColor ?? colors.textSecondary,
-        size: 22,
-      ),
+      leading: Icon(icon, color: iconColor ?? colors.textSecondary, size: 22),
       title: Text(
         title,
         style: AppTextStyles.titleSmall.copyWith(
@@ -221,8 +227,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final dialogColors =
-            Theme.of(dialogContext).extension<VoidInkColors>()!;
+        final dialogColors = Theme.of(
+          dialogContext,
+        ).extension<VoidInkColors>()!;
         return AlertDialog(
           backgroundColor: dialogColors.inkPanel,
           shape: RoundedRectangleBorder(
@@ -273,8 +280,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final dialogColors =
-            Theme.of(dialogContext).extension<VoidInkColors>()!;
+        final dialogColors = Theme.of(
+          dialogContext,
+        ).extension<VoidInkColors>()!;
         return AlertDialog(
           backgroundColor: dialogColors.inkPanel,
           shape: RoundedRectangleBorder(

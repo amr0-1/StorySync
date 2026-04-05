@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 allprojects {
     repositories {
         google()
@@ -27,6 +29,12 @@ subprojects {
                 namespace = "dev.mtrack.generated.$safeProjectName"
             }
         }
+    }
+
+    // Some plugin tasks still inject -source/-target 8; force Java 17 at task level.
+    tasks.withType(JavaCompile::class.java).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
     }
 }
 

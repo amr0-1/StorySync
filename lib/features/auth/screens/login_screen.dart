@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Login screen with premium Void Ink styling
 class LoginScreen extends StatefulWidget {
@@ -74,44 +75,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-            child: Image.asset(
-              'assets/images/app_icon.png',
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback to icon if image fails to load
-                return Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: colors.inkPanel,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                    border: Border.all(
-                      color: colors.inkBorder,
-                      width: AppDimensions.borderMedium,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.auto_stories_rounded,
-                    size: 44,
-                    color: colors.goldLight,
-                  ),
-                );
-              },
-            ),
-          ),
+          child: const AppIcon.large(),
         ),
         const SizedBox(height: AppDimensions.space16),
 
         // App name
         Text(
           'StorySync',
-          style: AppTextStyles.displayLarge.copyWith(
-            color: colors.goldLight,
-          ),
+          style: AppTextStyles.displayLarge.copyWith(color: colors.goldLight),
         ),
         const SizedBox(height: AppDimensions.space8),
 
@@ -131,10 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
       keyboardType: TextInputType.emailAddress,
       decoration: InputDecoration(
         hintText: 'your@email.com',
-        prefixIcon: Icon(
-          Icons.alternate_email_rounded,
-          color: colors.textHint,
-        ),
+        prefixIcon: Icon(Icons.alternate_email_rounded, color: colors.textHint),
       ),
     );
   }
@@ -146,10 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         hintText: 'password',
-        prefixIcon: Icon(
-          Icons.lock_outline_rounded,
-          color: colors.textHint,
-        ),
+        prefixIcon: Icon(Icons.lock_outline_rounded, color: colors.textHint),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword

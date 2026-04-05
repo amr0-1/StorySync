@@ -8,6 +8,7 @@ import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/features/library/widgets/manga_grid_card.dart';
 import 'package:storysync/features/library/widgets/manga_list_tile.dart';
+import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Library screen with grid/list toggle and category tabs
 class LibraryScreen extends StatefulWidget {
@@ -98,7 +99,19 @@ class _LibraryScreenState extends State<LibraryScreen>
     return Scaffold(
       backgroundColor: colors.inkVoid,
       appBar: AppBar(
-        title: Text('My Library', style: AppTextStyles.headlineMedium.copyWith(color: colors.textPrimary)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppIcon.small(),
+            const SizedBox(width: AppDimensions.space8),
+            Text(
+              'My Library',
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
         actions: [
           ValueListenableBuilder<bool>(
             valueListenable: _isGridView,
@@ -117,10 +130,7 @@ class _LibraryScreenState extends State<LibraryScreen>
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
-          child: _LibraryTabBar(
-            tabController: _tabController,
-            colors: colors,
-          ),
+          child: _LibraryTabBar(tabController: _tabController, colors: colors),
         ),
       ),
       body: TabBarView(
@@ -160,10 +170,7 @@ class _LibraryTabBar extends StatelessWidget {
   final TabController tabController;
   final VoidInkColors colors;
 
-  const _LibraryTabBar({
-    required this.tabController,
-    required this.colors,
-  });
+  const _LibraryTabBar({required this.tabController, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -249,10 +256,7 @@ class _EmptyState extends StatelessWidget {
   final ReadingStatus status;
   final VoidInkColors colors;
 
-  const _EmptyState({
-    required this.status,
-    required this.colors,
-  });
+  const _EmptyState({required this.status, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -260,11 +264,7 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.library_books_outlined,
-            size: 64,
-            color: colors.textHint,
-          ),
+          Icon(Icons.library_books_outlined, size: 64, color: colors.textHint),
           const SizedBox(height: AppDimensions.space16),
           Text(
             'No ${status.displayLabel.toLowerCase()} manga',
@@ -275,7 +275,9 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: AppDimensions.space8),
           Text(
             'Search for manga to add to your library',
-            style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colors.textSecondary,
+            ),
           ),
         ],
       ),

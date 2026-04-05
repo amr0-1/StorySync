@@ -5,6 +5,7 @@ import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
+import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Search and discover screen for finding new manga
 class DiscoverScreen extends StatefulWidget {
@@ -38,11 +39,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return Scaffold(
       backgroundColor: colors.inkVoid,
       appBar: AppBar(
-        title: Text(
-          'Discover',
-          style: AppTextStyles.headlineMedium.copyWith(
-            color: colors.textPrimary,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppIcon.small(),
+            const SizedBox(width: AppDimensions.space8),
+            Text(
+              'Discover',
+              style: AppTextStyles.headlineMedium.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
       body: Column(
@@ -191,16 +199,10 @@ class _SearchHeader extends StatelessWidget {
               controller: controller,
               decoration: InputDecoration(
                 hintText: 'Search manga, manhwa, manhua...',
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: colors.textHint,
-                ),
+                prefixIcon: Icon(Icons.search_rounded, color: colors.textHint),
                 suffixIcon: controller.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: colors.textHint,
-                        ),
+                        icon: Icon(Icons.clear_rounded, color: colors.textHint),
                         onPressed: onClear,
                       )
                     : null,
@@ -213,9 +215,7 @@ class _SearchHeader extends StatelessWidget {
           IconButton(
             icon: Icon(
               Icons.tune_rounded,
-              color: hasActiveFilters
-                  ? colors.goldSpark
-                  : colors.textSecondary,
+              color: hasActiveFilters ? colors.goldSpark : colors.textSecondary,
             ),
             onPressed: onFilterTapped,
           ),
@@ -313,11 +313,7 @@ class _NoResultsState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: colors.textHint,
-          ),
+          Icon(Icons.search_off_rounded, size: 64, color: colors.textHint),
           const SizedBox(height: AppDimensions.space16),
           Text(
             'No results found',
@@ -374,7 +370,8 @@ class _ResultsList extends StatelessWidget {
         },
       ),
     );
-  }}
+  }
+}
 
 /// Filter bottom sheet
 class _FilterBottomSheet extends StatefulWidget {
@@ -686,9 +683,7 @@ class _DiscoverResultTile extends StatelessWidget {
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colors.goldSpark,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
                 ),
               )
             : Icon(
@@ -742,7 +737,8 @@ const _demoSearchResults = [
     id: 'demo-1',
     title: 'Solo Leveling',
     author: 'Chugong',
-    coverUrl: 'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
+    coverUrl:
+        'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
     status: 'Finished',
   ),
   _SearchResult(
