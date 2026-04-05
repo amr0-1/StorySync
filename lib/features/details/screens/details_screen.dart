@@ -1,12 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/models/manga_item.dart';
-import 'package:mtrack/core/models/reading_status.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
-import 'package:mtrack/shared/widgets/chapter_stepper.dart';
-import 'package:mtrack/shared/widgets/status_badge.dart';
+import 'package:storysync/core/models/manga_item.dart';
+import 'package:storysync/core/models/reading_status.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/shared/widgets/chapter_stepper.dart';
+import 'package:storysync/shared/widgets/status_badge.dart';
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends StatefulWidget {
@@ -20,8 +20,6 @@ class DetailsScreen extends StatefulWidget {
 }
 
 class _DetailsScreenState extends State<DetailsScreen> {
-  bool _synopsisExpanded = false;
-
   // Demo data - replace with actual Isar lookup
   late MangaItem _manga;
   late int _currentChapter;
@@ -56,12 +54,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final VoidInkColors colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return Scaffold(
-      backgroundColor: AppColors.inkVoid,
+      backgroundColor: colors.inkVoid,
       body: CustomScrollView(
         slivers: [
           // Hero header
-          SliverToBoxAdapter(child: _buildHeroHeader(context)),
+          SliverToBoxAdapter(
+            child: _HeroHeader(manga: _manga, colors: colors),
+          ),
 
           // Content
           SliverPadding(
@@ -69,15 +71,30 @@ class _DetailsScreenState extends State<DetailsScreen> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // Info block
-                _buildInfoBlock(),
+                _InfoBlock(manga: _manga, status: _status, colors: colors),
                 const SizedBox(height: AppDimensions.space24),
 
                 // Synopsis
-                _buildSynopsis(),
+                _Synopsis(synopsis: _manga.synopsis, colors: colors),
                 const SizedBox(height: AppDimensions.space24),
 
                 // Tracker console
-                _buildTrackerConsole(),
+                _TrackerConsole(
+                  manga: _manga,
+                  status: _status,
+                  currentChapter: _currentChapter,
+                  colors: colors,
+                  onStatusChanged: (status) {
+                    setState(() {
+                      _status = status;
+                    });
+                  },
+                  onChapterChanged: (chapter) {
+                    setState(() {
+                      _currentChapter = chapter;
+                    });
+                  },
+                ),
                 const SizedBox(height: AppDimensions.space32),
               ]),
             ),
@@ -86,9 +103,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildHeroHeader(BuildContext context) {
-    final headerHeight = MediaQuery.of(context).size.height * 0.36;
+class _HeroHeader extends StatelessWidget {
+  final MangaItem manga;
+  final VoidInkColors colors;
+
+  const _HeroHeader({
+    required this.manga,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double headerHeight = MediaQuery.of(context).size.height * 0.36;
 
     return SizedBox(
       height: headerHeight,
@@ -96,7 +124,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         fit: StackFit.expand,
         children: [
           // Blurred background
-          if (_manga.coverUrl != null)
+          if (manga.coverUrl != null)
             ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
               child: ColorFiltered(
@@ -105,54 +133,63 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   BlendMode.darken,
                 ),
                 child: Image.network(
-                  _manga.coverUrl!,
+                  manga.coverUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Container(color: AppColors.inkPanel),
+                  errorBuilder: (context, error, stackTrace) => Container(color: colors.inkPanel),
                 ),
               ),
             )
           else
-            Container(color: AppColors.inkPanel),
+            Container(color: colors.inkPanel),
 
-          // Bottom gradient
+          // Bottom gradient — uses inkVoid so it blends into scaffold
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
               height: headerHeight * 0.5,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0xCC08080A)],
+                  colors: [
+                    Colors.transparent,
+                    colors.inkVoid.withValues(alpha: 0.8),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // Cover image centered
+          // Cover image centered - Hero animation target
           Center(
-            child: Container(
-              width: 130,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x66000000),
-                    blurRadius: 24,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                child: _manga.coverUrl != null
-                    ? Image.network(
-                        _manga.coverUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
-                      )
-                    : _buildCoverPlaceholder(),
+            child: Hero(
+              tag: 'cover_${manga.id}',
+              child: Container(
+                width: 130,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x66000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                  child: manga.coverUrl != null
+                      ? Image.network(
+                          manga.coverUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _CoverPlaceholder(colors: colors),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _CoverPlaceholder(colors: colors, showLoading: true);
+                          },
+                        )
+                      : _CoverPlaceholder(colors: colors),
+                ),
               ),
             ),
           ),
@@ -163,9 +200,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
             right: AppDimensions.space16,
             bottom: AppDimensions.space16,
             child: Text(
-              _manga.title,
+              manga.title,
               style: AppTextStyles.displayLarge.copyWith(
-                color: AppColors.goldLight,
+                color: colors.goldLight,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -177,9 +214,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
             top: MediaQuery.of(context).padding.top + 8,
             left: 8,
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_rounded,
-                color: AppColors.textPrimary,
+                color: colors.textPrimary,
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -188,36 +225,76 @@ class _DetailsScreenState extends State<DetailsScreen> {
       ),
     );
   }
+}
 
-  Widget _buildCoverPlaceholder() {
+class _CoverPlaceholder extends StatelessWidget {
+  final VoidInkColors colors;
+  final bool showLoading;
+
+  const _CoverPlaceholder({
+    required this.colors,
+    this.showLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: 130,
       height: 180,
-      color: AppColors.inkPanel,
-      child: const Center(
-        child: Icon(
-          Icons.menu_book_rounded,
-          size: 48,
-          color: AppColors.textHint,
-        ),
+      color: colors.inkPanel,
+      child: Center(
+        child: showLoading
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colors.goldSpark,
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.image_not_supported_outlined,
+                size: 48,
+                color: colors.textHint,
+              ),
       ),
     );
   }
+}
 
-  Widget _buildInfoBlock() {
+class _InfoBlock extends StatelessWidget {
+  final MangaItem manga;
+  final ReadingStatus status;
+  final VoidInkColors colors;
+
+  const _InfoBlock({
+    required this.manga,
+    required this.status,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Author row
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.person_outline_rounded,
               size: 16,
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
             const SizedBox(width: AppDimensions.space8),
-            Text(_manga.author ?? 'Unknown', style: AppTextStyles.bodyMedium),
+            Text(
+              manga.author ?? 'Unknown',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppDimensions.space8),
@@ -225,44 +302,78 @@ class _DetailsScreenState extends State<DetailsScreen> {
         // Status row
         Row(
           children: [
-            StatusBadge(status: _status),
+            StatusBadge(status: status),
             const SizedBox(width: AppDimensions.space12),
-            if (_manga.demographic != null)
-              Text(_manga.demographic!, style: AppTextStyles.bodySmall),
+            if (manga.demographic != null)
+              Text(
+                manga.demographic!,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
           ],
         ),
       ],
     );
   }
+}
 
-  Widget _buildSynopsis() {
-    if (_manga.synopsis == null || _manga.synopsis!.isEmpty) {
+class _Synopsis extends StatefulWidget {
+  final String? synopsis;
+  final VoidInkColors colors;
+
+  const _Synopsis({
+    required this.synopsis,
+    required this.colors,
+  });
+
+  @override
+  State<_Synopsis> createState() => _SynopsisState();
+}
+
+class _SynopsisState extends State<_Synopsis> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? syn = widget.synopsis;
+    if (syn == null || syn.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('SYNOPSIS', style: AppTextStyles.overline),
+        Text(
+          'SYNOPSIS',
+          style: AppTextStyles.overline.copyWith(color: widget.colors.textHint),
+        ),
         const SizedBox(height: AppDimensions.space8),
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 200),
-          crossFadeState: _synopsisExpanded
+          crossFadeState: _expanded
               ? CrossFadeState.showSecond
               : CrossFadeState.showFirst,
           firstChild: Text(
-            _manga.synopsis!,
-            style: AppTextStyles.bodyMedium,
+            syn,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: widget.colors.textSecondary,
+            ),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          secondChild: Text(_manga.synopsis!, style: AppTextStyles.bodyMedium),
+          secondChild: Text(
+            syn,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: widget.colors.textSecondary,
+            ),
+          ),
         ),
         const SizedBox(height: AppDimensions.space4),
         TextButton(
           onPressed: () {
             setState(() {
-              _synopsisExpanded = !_synopsisExpanded;
+              _expanded = !_expanded;
             });
           },
           style: TextButton.styleFrom(
@@ -271,22 +382,41 @@ class _DetailsScreenState extends State<DetailsScreen> {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: Text(
-            _synopsisExpanded ? 'Show less' : 'Read more',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.goldSpark),
+            _expanded ? 'Show less' : 'Read more',
+            style: AppTextStyles.bodySmall.copyWith(color: widget.colors.goldSpark),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildTrackerConsole() {
+class _TrackerConsole extends StatelessWidget {
+  final MangaItem manga;
+  final ReadingStatus status;
+  final int currentChapter;
+  final VoidInkColors colors;
+  final ValueChanged<ReadingStatus> onStatusChanged;
+  final ValueChanged<int> onChapterChanged;
+
+  const _TrackerConsole({
+    required this.manga,
+    required this.status,
+    required this.currentChapter,
+    required this.colors,
+    required this.onStatusChanged,
+    required this.onChapterChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
-        color: AppColors.inkPanel,
+        color: colors.inkPanel,
         borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
         border: Border.all(
-          color: AppColors.inkBorder,
+          color: colors.inkBorder,
           width: AppDimensions.borderThin,
         ),
       ),
@@ -294,77 +424,94 @@ class _DetailsScreenState extends State<DetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status dropdown
-          Text('STATUS', style: AppTextStyles.overline),
+          Text(
+            'STATUS',
+            style: AppTextStyles.overline.copyWith(color: colors.textHint),
+          ),
           const SizedBox(height: AppDimensions.space8),
-          _buildStatusDropdown(),
+          _StatusDropdown(
+            status: status,
+            colors: colors,
+            onChanged: onStatusChanged,
+          ),
           const SizedBox(height: AppDimensions.space24),
 
           // Chapter stepper
           ChapterStepper(
-            currentChapter: _currentChapter,
-            totalChapters: _manga.totalChapters,
-            onChanged: (value) {
-              setState(() {
-                _currentChapter = value;
-              });
-              // TODO: Update Isar
-            },
+            currentChapter: currentChapter,
+            totalChapters: manga.totalChapters,
+            onChanged: onChapterChanged,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStatusDropdown() {
+class _StatusDropdown extends StatelessWidget {
+  final ReadingStatus status;
+  final VoidInkColors colors;
+  final ValueChanged<ReadingStatus> onChanged;
+
+  const _StatusDropdown({
+    required this.status,
+    required this.colors,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.space12,
         vertical: AppDimensions.space8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.inkSurface,
+        color: colors.inkSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
         border: Border.all(
-          color: AppColors.inkBorder,
+          color: colors.inkBorder,
           width: AppDimensions.borderThin,
         ),
       ),
       child: DropdownButton<ReadingStatus>(
-        value: _status,
+        value: status,
         isExpanded: true,
         underline: const SizedBox.shrink(),
-        dropdownColor: AppColors.inkSurface,
+        dropdownColor: colors.inkSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-        icon: const Icon(
+        icon: Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: AppColors.textSecondary,
+          color: colors.textSecondary,
         ),
         selectedItemBuilder: (context) {
-          return ReadingStatus.values.map((status) {
+          return ReadingStatus.values.map((s) {
             return Align(
               alignment: Alignment.centerLeft,
-              child: StatusBadge(status: status),
+              child: StatusBadge(status: s),
             );
           }).toList();
         },
-        items: ReadingStatus.values.map((status) {
+        items: ReadingStatus.values.map((s) {
           return DropdownMenuItem<ReadingStatus>(
-            value: status,
+            value: s,
             child: Row(
               children: [
-                StatusBadge(status: status, compact: true),
+                StatusBadge(status: s, compact: true),
                 const SizedBox(width: AppDimensions.space8),
-                Text(status.displayLabel, style: AppTextStyles.bodyMedium),
+                Text(
+                  s.displayLabel,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
               ],
             ),
           );
         }).toList(),
         onChanged: (value) {
           if (value != null) {
-            setState(() {
-              _status = value;
-            });
-            // TODO: Update Isar
+            onChanged(value);
           }
         },
       ),

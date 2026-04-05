@@ -1,4 +1,4 @@
-import 'package:mtrack/core/models/reading_status.dart';
+import 'package:storysync/core/models/reading_status.dart';
 
 /// Manga item model for library tracking
 /// This is a simple model for UI purposes. For Isar persistence,

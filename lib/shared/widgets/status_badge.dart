@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/models/reading_status.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/models/reading_status.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// A badge displaying the reading status with appropriate colors
 class StatusBadge extends StatelessWidget {
@@ -16,8 +16,9 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = AppColors.forStatus(status);
-    final backgroundColor = AppColors.bgForStatus(status);
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    final statusColor = colors.forStatus(status);
+    final backgroundColor = colors.bgForStatus(status);
 
     return Container(
       padding: EdgeInsets.symmetric(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// App shell with custom navigation bar and floating discover FAB
 class AppShell extends StatelessWidget {
@@ -29,6 +29,7 @@ class AppShell extends StatelessWidget {
 }
 
 /// Custom navigation bar with Void Ink styling
+/// Uses a Stack to properly position the floating FAB without overflow
 class _VoidInkNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
@@ -40,52 +41,74 @@ class _VoidInkNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.inkSurface,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.inkBorder,
-            width: AppDimensions.borderThin,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: AppDimensions.navBarHeight,
-          child: Row(
-            children: [
-              // Library tab
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.collections_bookmark_rounded,
-                  label: 'Library',
-                  isSelected: currentIndex == 0,
-                  onTap: () => onDestinationSelected(0),
-                ),
-              ),
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-              // Discover tab (FAB style)
-              Expanded(
-                child: _NavFabItem(
-                  isSelected: currentIndex == 1,
-                  onTap: () => onDestinationSelected(1),
+    return SizedBox(
+      // Extra height to accommodate the FAB overflow above the bar
+      height: AppDimensions.navBarHeight + bottomPadding + 12,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Layer 1: The actual navigation bar surface
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: AppDimensions.navBarHeight + bottomPadding,
+              decoration: BoxDecoration(
+                color: colors.inkSurface,
+                border: Border(
+                  top: BorderSide(
+                    color: colors.inkBorder,
+                    width: AppDimensions.borderThin,
+                  ),
                 ),
               ),
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomPadding),
+                child: Row(
+                  children: [
+                    // Library tab
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.collections_bookmark_rounded,
+                        label: 'Library',
+                        isSelected: currentIndex == 0,
+                        onTap: () => onDestinationSelected(0),
+                      ),
+                    ),
 
-              // Settings tab
-              Expanded(
-                child: _NavItem(
-                  icon: Icons.person_outline_rounded,
-                  label: 'Settings',
-                  isSelected: currentIndex == 2,
-                  onTap: () => onDestinationSelected(2),
+                    // Empty space for the FAB
+                    const Expanded(child: SizedBox.shrink()),
+
+                    // Settings tab
+                    Expanded(
+                      child: _NavItem(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Settings',
+                        isSelected: currentIndex == 2,
+                        onTap: () => onDestinationSelected(2),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Layer 2: Floating FAB positioned to overlap the top edge
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: _NavFabItem(
+              isSelected: currentIndex == 1,
+              onTap: () => onDestinationSelected(1),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -107,6 +130,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return InkWell(
       onTap: onTap,
       child: Column(
@@ -115,13 +139,13 @@ class _NavItem extends StatelessWidget {
           Icon(
             icon,
             size: 22,
-            color: isSelected ? AppColors.goldSpark : AppColors.textSecondary,
+            color: isSelected ? colors.goldSpark : colors.textSecondary,
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.goldSpark : AppColors.textSecondary,
+              color: isSelected ? colors.goldSpark : colors.textSecondary,
             ),
           ),
         ],
@@ -139,44 +163,40 @@ class _NavFabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Floating FAB
-        Transform.translate(
-          offset: const Offset(0, -12),
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              width: AppDimensions.navFabSize,
-              height: AppDimensions.navFabSize,
-              decoration: BoxDecoration(
-                color: AppColors.goldSpark,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.goldSpark.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.search_rounded,
-                color: Color(0xFF1A0F00),
-                size: 24,
-              ),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: AppDimensions.navFabSize,
+            height: AppDimensions.navFabSize,
+            decoration: BoxDecoration(
+              color: colors.goldSpark,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.goldSpark.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.search_rounded,
+              color: Color(0xFF1A0F00),
+              size: 24,
             ),
           ),
         ),
+        const SizedBox(height: 4),
         // Label
-        Transform.translate(
-          offset: const Offset(0, -8),
-          child: Text(
-            'Discover',
-            style: AppTextStyles.labelSmall.copyWith(
-              color: isSelected ? AppColors.goldSpark : AppColors.textSecondary,
-            ),
+        Text(
+          'Discover',
+          style: AppTextStyles.labelSmall.copyWith(
+            color: isSelected ? colors.goldSpark : colors.textSecondary,
           ),
         ),
       ],

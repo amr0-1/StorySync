@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
 
-/// Void Ink typography styles
+/// Void Ink typography styles.
+///
+/// Colors are intentionally omitted from these base definitions.
+/// They are applied dynamically via [ThemeData.textTheme] in `AppTheme`,
+/// which injects the correct colors from `VoidInkColors` for each brightness.
+///
+/// When using these styles directly in widgets, apply color via:
+/// ```dart
+/// final colors = Theme.of(context).extension<VoidInkColors>()!;
+/// Text('Hello', style: AppTextStyles.titleMedium.copyWith(color: colors.textPrimary));
+/// ```
 abstract class AppTextStyles {
+
   // ── Display (Cormorant Garamond) ────────────────────────────
   static const TextStyle displayLarge = TextStyle(
     fontFamily: 'CormorantGaramond',
     fontSize: 32,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.1,
     letterSpacing: 0.3,
   );
@@ -17,7 +26,6 @@ abstract class AppTextStyles {
     fontFamily: 'CormorantGaramond',
     fontSize: 24,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.15,
   );
 
@@ -26,7 +34,6 @@ abstract class AppTextStyles {
     fontFamily: 'CormorantGaramond',
     fontSize: 22,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.2,
   );
 
@@ -34,7 +41,6 @@ abstract class AppTextStyles {
     fontFamily: 'CormorantGaramond',
     fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
     height: 1.25,
   );
 
@@ -43,7 +49,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 18,
     fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
     height: 1.3,
   );
 
@@ -51,7 +56,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 15,
     fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
     height: 1.35,
   );
 
@@ -59,7 +63,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 13,
     fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
   );
 
   // ── Body (DM Sans) ──────────────────────────────────────────
@@ -67,7 +70,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     height: 1.6,
   );
 
@@ -75,7 +77,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     height: 1.5,
   );
 
@@ -84,7 +85,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
     letterSpacing: 0.2,
   );
 
@@ -92,7 +92,6 @@ abstract class AppTextStyles {
     fontFamily: 'DMSans',
     fontSize: 11,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
     letterSpacing: 0.3,
   );
 
@@ -101,7 +100,6 @@ abstract class AppTextStyles {
     fontFamily: 'JetBrainsMono',
     fontSize: 28,
     fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
     letterSpacing: -0.5,
   );
 
@@ -109,14 +107,12 @@ abstract class AppTextStyles {
     fontFamily: 'JetBrainsMono',
     fontSize: 15,
     fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
   );
 
   static const TextStyle monoSmall = TextStyle(
     fontFamily: 'JetBrainsMono',
     fontSize: 11,
     fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
     letterSpacing: 0.1,
   );
 
@@ -125,7 +121,6 @@ abstract class AppTextStyles {
     fontFamily: 'JetBrainsMono',
     fontSize: 10,
     fontWeight: FontWeight.w500,
-    color: AppColors.textHint,
     letterSpacing: 0.15,
     height: 1.0,
   );

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// Login screen with premium Void Ink styling
 class LoginScreen extends StatefulWidget {
@@ -26,8 +26,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return Scaffold(
-      backgroundColor: AppColors.inkVoid,
+      backgroundColor: colors.inkVoid,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -58,53 +59,58 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLogo() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return Column(
       children: [
-        // Logo container with manga-panel styling
+        // Premium app icon with shadow and rounded corners
         Container(
-          width: 100,
-          height: 100,
           decoration: BoxDecoration(
-            color: AppColors.inkPanel,
             borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-            border: Border.all(
-              color: AppColors.inkBorder,
-              width: AppDimensions.borderMedium,
-            ),
-          ),
-          child: Stack(
-            children: [
-              // Inner border (manga panel style)
-              Positioned.fill(
-                child: Container(
-                  margin: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: AppColors.goldSpark.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  ),
-                ),
-              ),
-              // App icon
-              const Center(
-                child: Icon(
-                  Icons.auto_stories_rounded,
-                  size: 44,
-                  color: AppColors.goldLight,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: colors.goldSpark.withValues(alpha: 0.25),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+            child: Image.asset(
+              'assets/images/app_icon.png',
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback to icon if image fails to load
+                return Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: colors.inkPanel,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                    border: Border.all(
+                      color: colors.inkBorder,
+                      width: AppDimensions.borderMedium,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.auto_stories_rounded,
+                    size: 44,
+                    color: colors.goldLight,
+                  ),
+                );
+              },
+            ),
           ),
         ),
         const SizedBox(height: AppDimensions.space16),
 
         // App name
         Text(
-          'MTrack',
+          'StorySync',
           style: AppTextStyles.displayLarge.copyWith(
-            color: AppColors.goldLight,
+            color: colors.goldLight,
           ),
         ),
         const SizedBox(height: AppDimensions.space8),
@@ -119,35 +125,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildEmailField() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return TextField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: 'your@email.com',
         prefixIcon: Icon(
           Icons.alternate_email_rounded,
-          color: AppColors.textHint,
+          color: colors.textHint,
         ),
       ),
     );
   }
 
   Widget _buildPasswordField() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return TextField(
       controller: _passwordController,
       obscureText: _obscurePassword,
       decoration: InputDecoration(
         hintText: 'password',
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.lock_outline_rounded,
-          color: AppColors.textHint,
+          color: colors.textHint,
         ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: AppColors.textHint,
+            color: colors.textHint,
           ),
           onPressed: () {
             setState(() {
@@ -160,13 +168,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildSignInButton() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
         onPressed: _handleSignIn,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.goldSpark,
+          backgroundColor: colors.goldSpark,
           foregroundColor: const Color(0xFF1A0F00),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -184,11 +193,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildGuestButton() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     return TextButton(
       onPressed: _handleGuestMode,
       child: Text(
         'Continue without account',
-        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textHint),
+        style: AppTextStyles.bodyMedium.copyWith(color: colors.textHint),
       ),
     );
   }

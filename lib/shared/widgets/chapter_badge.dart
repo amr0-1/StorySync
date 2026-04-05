@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// A badge displaying the current chapter progress
 class ChapterBadge extends StatelessWidget {
@@ -15,19 +15,21 @@ class ChapterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xDD08080A), // 85% opaque inkVoid
+        color: colors.inkVoid.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(AppDimensions.radiusXS),
         border: Border.all(
-          color: AppColors.inkBorder,
+          color: colors.inkBorder,
           width: AppDimensions.borderThin,
         ),
       ),
       child: Text(
         total != null ? '$current / $total' : '$current',
-        style: AppTextStyles.monoSmall,
+        style: AppTextStyles.monoSmall.copyWith(color: colors.textPrimary),
       ),
     );
   }

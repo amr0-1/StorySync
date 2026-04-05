@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/models/manga_item.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
-import 'package:mtrack/shared/widgets/status_badge.dart';
+import 'package:storysync/core/models/manga_item.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/shared/widgets/status_badge.dart';
 
 /// List tile widget for displaying manga in list view
 class MangaListTile extends StatelessWidget {
@@ -25,6 +25,8 @@ class MangaListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -32,13 +34,16 @@ class MangaListTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space16),
         child: Row(
           children: [
-            // Thumbnail
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimensions.radiusXS),
-              child: SizedBox(
-                width: AppDimensions.listThumbWidth,
-                height: AppDimensions.listThumbHeight,
-                child: _buildThumbnail(),
+            // Thumbnail wrapped in Hero
+            Hero(
+              tag: 'cover_${manga.id}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXS),
+                child: SizedBox(
+                  width: AppDimensions.listThumbWidth,
+                  height: AppDimensions.listThumbHeight,
+                  child: _buildThumbnail(colors),
+                ),
               ),
             ),
             const SizedBox(width: AppDimensions.space12),
@@ -52,7 +57,7 @@ class MangaListTile extends StatelessWidget {
                   // Title
                   Text(
                     manga.title,
-                    style: AppTextStyles.titleSmall,
+                    style: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -66,7 +71,7 @@ class MangaListTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             manga.author!,
-                            style: AppTextStyles.bodySmall,
+                            style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -85,14 +90,14 @@ class MangaListTile extends StatelessWidget {
                 Text(
                   '${manga.currentChapter}',
                   style: AppTextStyles.monoMedium.copyWith(
-                    color: AppColors.goldSpark,
+                    color: colors.goldSpark,
                   ),
                 ),
                 if (manga.totalChapters != null)
                   Text(
                     '/ ${manga.totalChapters}',
                     style: AppTextStyles.monoSmall.copyWith(
-                      color: AppColors.textHint,
+                      color: colors.textHint,
                     ),
                   ),
               ],
@@ -103,42 +108,40 @@ class MangaListTile extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail() {
+  Widget _buildThumbnail(VoidInkColors colors) {
     if (manga.coverUrl != null && manga.coverUrl!.isNotEmpty) {
       return Image.network(
         manga.coverUrl!,
         fit: BoxFit.cover,
         cacheWidth: (AppDimensions.listThumbWidth * 2).toInt(),
         cacheHeight: (AppDimensions.listThumbHeight * 2).toInt(),
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colors),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
-          return _buildPlaceholder(showLoading: true);
+          return _buildPlaceholder(colors, showLoading: true);
         },
       );
     }
-    return _buildPlaceholder();
+    return _buildPlaceholder(colors);
   }
 
-  Widget _buildPlaceholder({bool showLoading = false}) {
+  Widget _buildPlaceholder(VoidInkColors colors, {bool showLoading = false}) {
     return Container(
-      color: AppColors.inkPanel,
+      color: colors.inkPanel,
       child: Center(
         child: showLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.goldSpark,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
                 ),
               )
-            : const Icon(
-                Icons.menu_book_rounded,
+            : Icon(
+                Icons.image_not_supported_outlined,
                 size: 20,
-                color: AppColors.textHint,
+                color: colors.textHint,
               ),
       ),
     );

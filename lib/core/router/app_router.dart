@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mtrack/features/auth/screens/login_screen.dart';
-import 'package:mtrack/features/details/screens/details_screen.dart';
-import 'package:mtrack/features/discover/screens/discover_screen.dart';
-import 'package:mtrack/features/library/screens/library_screen.dart';
-import 'package:mtrack/features/settings/screens/settings_screen.dart';
-import 'package:mtrack/features/shell/screens/app_shell.dart';
+import 'package:storysync/features/auth/screens/login_screen.dart';
+import 'package:storysync/features/details/screens/details_screen.dart';
+import 'package:storysync/features/discover/screens/discover_screen.dart';
+import 'package:storysync/features/library/screens/library_screen.dart';
+import 'package:storysync/features/settings/screens/settings_screen.dart';
+import 'package:storysync/features/shell/screens/app_shell.dart';
 
 /// App router configuration with Void Ink design system
 class AppRouter {
@@ -59,13 +59,44 @@ class AppRouter {
         ],
       ),
 
-      // Details route (outside shell, full screen)
+      // Details route (outside shell, full screen) with custom transition
       GoRoute(
         path: '/details/:id',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final mangaId = state.pathParameters['id'] ?? '';
-          return DetailsScreen(mangaId: mangaId);
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: DetailsScreen(mangaId: mangaId),
+            transitionDuration: const Duration(milliseconds: 350),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  // Combine fade and slight slide up for a premium feel
+                  final fadeAnimation = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOut,
+                  );
+                  final slideAnimation =
+                      Tween<Offset>(
+                        begin: const Offset(0, 0.05),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      );
+
+                  return FadeTransition(
+                    opacity: fadeAnimation,
+                    child: SlideTransition(
+                      position: slideAnimation,
+                      child: child,
+                    ),
+                  );
+                },
+          );
         },
       ),
     ],

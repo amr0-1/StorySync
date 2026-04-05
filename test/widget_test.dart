@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mtrack/main.dart';
+import 'package:storysync/main.dart';
 
 void main() {
   testWidgets('App loads and displays Library tab', (

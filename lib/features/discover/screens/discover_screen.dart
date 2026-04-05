@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/core/utils/snackbar_util.dart';
 
 /// Search and discover screen for finding new manga
 class DiscoverScreen extends StatefulWidget {
@@ -32,68 +33,46 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final VoidInkColors colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return Scaffold(
-      backgroundColor: AppColors.inkVoid,
+      backgroundColor: colors.inkVoid,
       appBar: AppBar(
-        title: Text('Discover', style: AppTextStyles.headlineMedium),
+        title: Text(
+          'Discover',
+          style: AppTextStyles.headlineMedium.copyWith(
+            color: colors.textPrimary,
+          ),
+        ),
       ),
       body: Column(
         children: [
           // Search header
-          _buildSearchHeader(),
+          _SearchHeader(
+            controller: _searchController,
+            hasActiveFilters: _hasActiveFilters,
+            colors: colors,
+            onSearchChanged: _onSearchChanged,
+            onClear: () {
+              _searchController.clear();
+              setState(() {
+                _results = [];
+              });
+            },
+            onFilterTapped: _showFilterSheet,
+          ),
 
           // Results
-          Expanded(child: _buildContent()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.space16,
-        vertical: AppDimensions.space12,
-      ),
-      child: Row(
-        children: [
           Expanded(
-            child: TextField(
+            child: _DiscoverContent(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search manga, manhwa, manhua...',
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textHint,
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(
-                          Icons.clear_rounded,
-                          color: AppColors.textHint,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _results = [];
-                          });
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: _onSearchChanged,
+              isSearching: _isSearching,
+              results: _results,
+              colors: colors,
+              onRefresh: _onRefresh,
+              onDetails: _navigateToDetails,
+              onAdd: _addToLibrary,
             ),
-          ),
-          const SizedBox(width: AppDimensions.space12),
-          // Filter button
-          IconButton(
-            icon: Icon(
-              Icons.tune_rounded,
-              color: _hasActiveFilters
-                  ? AppColors.goldSpark
-                  : AppColors.textSecondary,
-            ),
-            onPressed: _showFilterSheet,
           ),
         ],
       ),
@@ -103,91 +82,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool get _hasActiveFilters =>
       _selectedDemographics.isNotEmpty || _selectedStatuses.isNotEmpty;
 
-  Widget _buildContent() {
-    if (_searchController.text.isEmpty) {
-      return _buildEmptyState();
+  Future<void> _onRefresh() async {
+    // TODO: Refresh search results from API when integrated
+    if (_searchController.text.isNotEmpty) {
+      await _performSearch(_searchController.text);
+    } else {
+      await Future.delayed(const Duration(seconds: 1));
     }
-
-    if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.goldSpark),
-        ),
-      );
-    }
-
-    if (_results.isEmpty) {
-      return _buildNoResults();
-    }
-
-    return _buildResultsList();
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.search_rounded, size: 64, color: AppColors.textHint),
-          const SizedBox(height: AppDimensions.space16),
-          Text(
-            'Search for your favorite manga',
-            style: AppTextStyles.titleMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.space8),
-          Text(
-            'Powered by MangaDex',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoResults() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.search_off_rounded,
-            size: 64,
-            color: AppColors.textHint,
-          ),
-          const SizedBox(height: AppDimensions.space16),
-          Text(
-            'No results found',
-            style: AppTextStyles.titleMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.space8),
-          Text(
-            'Try adjusting your search or filters',
-            style: AppTextStyles.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultsList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppDimensions.space16),
-      itemCount: _results.length,
-      separatorBuilder: (context, index) =>
-          const SizedBox(height: AppDimensions.space12),
-      itemBuilder: (context, index) {
-        final result = _results[index];
-        return _DiscoverResultTile(
-          result: result,
-          onTap: () => _navigateToDetails(result),
-          onAdd: () => _addToLibrary(result),
-        );
-      },
-    );
   }
 
   void _onSearchChanged(String value) {
@@ -233,13 +134,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.inkPanel,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusMD),
-        ),
-      ),
-      builder: (context) => _FilterBottomSheet(
+      builder: (ctx) => _FilterBottomSheet(
         selectedDemographics: _selectedDemographics,
         selectedStatuses: _selectedStatuses,
         onApply: (demographics, statuses) {
@@ -261,30 +156,225 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   void _addToLibrary(_SearchResult result) {
     // TODO: Implement actual Isar save
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(
-              Icons.check_circle_rounded,
-              color: AppColors.goldSpark,
-              size: 20,
-            ),
-            const SizedBox(width: AppDimensions.space8),
-            Text(
-              'Added to Library',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+    VoidInkSnackbar.showSuccess(context, 'Added to Library');
+  }
+}
+
+class _SearchHeader extends StatelessWidget {
+  final TextEditingController controller;
+  final bool hasActiveFilters;
+  final VoidInkColors colors;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClear;
+  final VoidCallback onFilterTapped;
+
+  const _SearchHeader({
+    required this.controller,
+    required this.hasActiveFilters,
+    required this.colors,
+    required this.onSearchChanged,
+    required this.onClear,
+    required this.onFilterTapped,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.space16,
+        vertical: AppDimensions.space12,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'Search manga, manhwa, manhua...',
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: colors.textHint,
+                ),
+                suffixIcon: controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: colors.textHint,
+                        ),
+                        onPressed: onClear,
+                      )
+                    : null,
               ),
+              onChanged: onSearchChanged,
             ),
-          ],
-        ),
-        backgroundColor: AppColors.inkPanel,
-        behavior: SnackBarBehavior.floating,
+          ),
+          const SizedBox(width: AppDimensions.space12),
+          // Filter button
+          IconButton(
+            icon: Icon(
+              Icons.tune_rounded,
+              color: hasActiveFilters
+                  ? colors.goldSpark
+                  : colors.textSecondary,
+            ),
+            onPressed: onFilterTapped,
+          ),
+        ],
       ),
     );
   }
 }
+
+class _DiscoverContent extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isSearching;
+  final List<_SearchResult> results;
+  final VoidInkColors colors;
+  final Future<void> Function() onRefresh;
+  final void Function(_SearchResult) onDetails;
+  final void Function(_SearchResult) onAdd;
+
+  const _DiscoverContent({
+    required this.controller,
+    required this.isSearching,
+    required this.results,
+    required this.colors,
+    required this.onRefresh,
+    required this.onDetails,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.text.isEmpty) {
+      return _EmptyState(colors: colors);
+    }
+
+    if (isSearching) {
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
+        ),
+      );
+    }
+
+    if (results.isEmpty) {
+      return _NoResultsState(colors: colors);
+    }
+
+    return _ResultsList(
+      results: results,
+      colors: colors,
+      onRefresh: onRefresh,
+      onDetails: onDetails,
+      onAdd: onAdd,
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidInkColors colors;
+
+  const _EmptyState({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_rounded, size: 64, color: colors.textHint),
+          const SizedBox(height: AppDimensions.space16),
+          Text(
+            'Search for your favorite manga',
+            style: AppTextStyles.titleMedium.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space8),
+          Text(
+            'Powered by MangaDex',
+            style: AppTextStyles.bodySmall.copyWith(color: colors.textHint),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoResultsState extends StatelessWidget {
+  final VoidInkColors colors;
+
+  const _NoResultsState({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: colors.textHint,
+          ),
+          const SizedBox(height: AppDimensions.space16),
+          Text(
+            'No results found',
+            style: AppTextStyles.titleMedium.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.space8),
+          Text(
+            'Try adjusting your search or filters',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultsList extends StatelessWidget {
+  final List<_SearchResult> results;
+  final VoidInkColors colors;
+  final Future<void> Function() onRefresh;
+  final void Function(_SearchResult) onDetails;
+  final void Function(_SearchResult) onAdd;
+
+  const _ResultsList({
+    required this.results,
+    required this.colors,
+    required this.onRefresh,
+    required this.onDetails,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      color: colors.goldSpark,
+      backgroundColor: colors.inkSurface,
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(AppDimensions.space16),
+        itemCount: results.length,
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: AppDimensions.space12),
+        itemBuilder: (context, index) {
+          final _SearchResult result = results[index];
+          return _DiscoverResultTile(
+            result: result,
+            onTap: () => onDetails(result),
+            onAdd: () => onAdd(result),
+          );
+        },
+      ),
+    );
+  }}
 
 /// Filter bottom sheet
 class _FilterBottomSheet extends StatefulWidget {
@@ -315,6 +405,8 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return Padding(
       padding: const EdgeInsets.all(AppDimensions.space16),
       child: Column(
@@ -324,17 +416,22 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           // Title with gold border
           Container(
             padding: const EdgeInsets.only(bottom: AppDimensions.space12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: AppColors.goldSpark,
+                  color: colors.goldSpark,
                   width: AppDimensions.borderThin,
                 ),
               ),
             ),
             child: Row(
               children: [
-                Text('Filter Results', style: AppTextStyles.titleMedium),
+                Text(
+                  'Filter Results',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: () {
@@ -346,7 +443,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                   child: Text(
                     'Clear',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.goldSpark,
+                      color: colors.goldSpark,
                     ),
                   ),
                 ),
@@ -356,7 +453,10 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           const SizedBox(height: AppDimensions.space16),
 
           // Demographic filters
-          Text('DEMOGRAPHIC', style: AppTextStyles.overline),
+          Text(
+            'DEMOGRAPHIC',
+            style: AppTextStyles.overline.copyWith(color: colors.textHint),
+          ),
           const SizedBox(height: AppDimensions.space8),
           Wrap(
             spacing: AppDimensions.space8,
@@ -382,7 +482,10 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           const SizedBox(height: AppDimensions.space16),
 
           // Status filters
-          Text('STATUS', style: AppTextStyles.overline),
+          Text(
+            'STATUS',
+            style: AppTextStyles.overline.copyWith(color: colors.textHint),
+          ),
           const SizedBox(height: AppDimensions.space8),
           Wrap(
             spacing: AppDimensions.space8,
@@ -417,18 +520,23 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.inkPanel,
-                foregroundColor: AppColors.textPrimary,
+                backgroundColor: colors.inkPanel,
+                foregroundColor: colors.textPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  side: const BorderSide(
-                    color: AppColors.inkBorder,
+                  side: BorderSide(
+                    color: colors.inkBorder,
                     width: AppDimensions.borderThin,
                   ),
                 ),
               ),
-              child: Text('Apply', style: AppTextStyles.titleMedium),
+              child: Text(
+                'Apply',
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: colors.textPrimary,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: AppDimensions.space8),
@@ -452,14 +560,16 @@ class _FilterChipWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: onSelected,
-      selectedColor: AppColors.goldSpark.withValues(alpha: 0.15),
-      checkmarkColor: AppColors.goldSpark,
+      selectedColor: colors.goldSpark.withValues(alpha: 0.15),
+      checkmarkColor: colors.goldSpark,
       side: BorderSide(
-        color: isSelected ? AppColors.goldSpark : AppColors.inkBorder,
+        color: isSelected ? colors.goldSpark : colors.inkBorder,
         width: AppDimensions.borderThin,
       ),
     );
@@ -480,15 +590,17 @@ class _DiscoverResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.space12),
         decoration: BoxDecoration(
-          color: AppColors.inkSurface,
+          color: colors.inkSurface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
           border: Border.all(
-            color: AppColors.inkBorder,
+            color: colors.inkBorder,
             width: AppDimensions.borderThin,
           ),
         ),
@@ -504,9 +616,17 @@ class _DiscoverResultTile extends StatelessWidget {
                     ? Image.network(
                         result.coverUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildCoverPlaceholder(),
+                        errorBuilder: (_, error, stack) =>
+                            _buildCoverPlaceholder(colors),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _buildCoverPlaceholder(
+                            colors,
+                            showLoading: true,
+                          );
+                        },
                       )
-                    : _buildCoverPlaceholder(),
+                    : _buildCoverPlaceholder(colors),
               ),
             ),
             const SizedBox(width: AppDimensions.space12),
@@ -518,28 +638,32 @@ class _DiscoverResultTile extends StatelessWidget {
                 children: [
                   Text(
                     result.title,
-                    style: AppTextStyles.titleSmall,
+                    style: AppTextStyles.titleSmall.copyWith(
+                      color: colors.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     result.author ?? 'Unknown',
-                    style: AppTextStyles.bodySmall,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: colors.textSecondary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  _buildStatusPill(),
+                  _buildStatusPill(colors),
                 ],
               ),
             ),
 
             // Add button
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.add_circle_outline_rounded,
-                color: AppColors.goldSpark,
+                color: colors.goldSpark,
               ),
               onPressed: onAdd,
             ),
@@ -549,33 +673,47 @@ class _DiscoverResultTile extends StatelessWidget {
     );
   }
 
-  Widget _buildCoverPlaceholder() {
+  Widget _buildCoverPlaceholder(
+    VoidInkColors colors, {
+    bool showLoading = false,
+  }) {
     return Container(
-      color: AppColors.inkPanel,
-      child: const Center(
-        child: Icon(
-          Icons.menu_book_rounded,
-          size: 20,
-          color: AppColors.textHint,
-        ),
+      color: colors.inkPanel,
+      child: Center(
+        child: showLoading
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colors.goldSpark,
+                  ),
+                ),
+              )
+            : Icon(
+                Icons.image_not_supported_outlined,
+                size: 20,
+                color: colors.textHint,
+              ),
       ),
     );
   }
 
-  Widget _buildStatusPill() {
+  Widget _buildStatusPill(VoidInkColors colors) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.inkPanel,
+        color: colors.inkPanel,
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
         border: Border.all(
-          color: AppColors.inkBorder,
+          color: colors.inkBorder,
           width: AppDimensions.borderThin,
         ),
       ),
       child: Text(
         result.status,
-        style: AppTextStyles.overline.copyWith(color: AppColors.textSecondary),
+        style: AppTextStyles.overline.copyWith(color: colors.textSecondary),
       ),
     );
   }
@@ -604,6 +742,7 @@ const _demoSearchResults = [
     id: 'demo-1',
     title: 'Solo Leveling',
     author: 'Chugong',
+    coverUrl: 'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
     status: 'Finished',
   ),
   _SearchResult(

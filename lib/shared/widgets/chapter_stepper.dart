@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mtrack/core/theme/app_colors.dart';
-import 'package:mtrack/core/theme/app_dimensions.dart';
-import 'package:mtrack/core/theme/app_text_styles.dart';
+import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/theme/app_dimensions.dart';
+import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// A stepper widget for incrementing/decrementing chapter progress
 class ChapterStepper extends StatelessWidget {
@@ -23,6 +23,7 @@ class ChapterStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     final remaining = totalChapters != null
         ? (totalChapters! - currentChapter).clamp(0, totalChapters!)
         : null;
@@ -34,7 +35,7 @@ class ChapterStepper extends StatelessWidget {
     return Column(
       children: [
         // Label
-        Text('CURRENT CHAPTER', style: AppTextStyles.overline),
+        Text('CURRENT CHAPTER', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
         const SizedBox(height: AppDimensions.space12),
 
         // Stepper controls
@@ -50,12 +51,34 @@ class ChapterStepper extends StatelessWidget {
             ),
             const SizedBox(width: 20),
 
-            // Chapter display
+            // Chapter display with animated switcher
             Column(
               children: [
-                Text('$currentChapter', style: AppTextStyles.monoLarge),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return SlideTransition(
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(0, 0.5),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                      child: FadeTransition(opacity: animation, child: child),
+                    );
+                  },
+                  child: Text(
+                    '$currentChapter',
+                    key: ValueKey<int>(currentChapter),
+                    style: AppTextStyles.monoLarge.copyWith(color: colors.textPrimary),
+                  ),
+                ),
                 if (totalChapters != null)
-                  Text('/  $totalChapters', style: AppTextStyles.overline),
+                  Text('/  $totalChapters', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
               ],
             ),
             const SizedBox(width: 20),
@@ -77,17 +100,17 @@ class ChapterStepper extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.inkPanel,
+                  color: colors.inkPanel,
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('REMAINING', style: AppTextStyles.overline),
+                    Text('REMAINING', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
                     const SizedBox(height: 4),
                     Text(
                       remaining != null ? '$remaining' : '—',
-                      style: AppTextStyles.monoMedium,
+                      style: AppTextStyles.monoMedium.copyWith(color: colors.textPrimary),
                     ),
                   ],
                 ),
@@ -100,18 +123,18 @@ class ChapterStepper extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.inkPanel,
+                  color: colors.inkPanel,
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('PROGRESS', style: AppTextStyles.overline),
+                    Text('PROGRESS', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
                     const SizedBox(height: 4),
                     Text(
                       totalChapters != null ? '$progressPercent%' : '—',
                       style: AppTextStyles.monoMedium.copyWith(
-                        color: AppColors.goldSpark,
+                        color: colors.goldSpark,
                       ),
                     ),
                   ],
@@ -127,10 +150,8 @@ class ChapterStepper extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDimensions.radiusXS),
           child: LinearProgressIndicator(
             value: progress,
-            backgroundColor: AppColors.inkBorder,
-            valueColor: const AlwaysStoppedAnimation<Color>(
-              AppColors.goldSpark,
-            ),
+            backgroundColor: colors.inkBorder,
+            valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
             minHeight: 4,
           ),
         ),
@@ -139,35 +160,50 @@ class ChapterStepper extends StatelessWidget {
   }
 }
 
-/// Individual stepper button
-class _StepperButton extends StatelessWidget {
+/// Individual stepper button with scale animation on press
+class _StepperButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback? onTap;
 
   const _StepperButton({required this.icon, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    final isEnabled = onTap != null;
+  State<_StepperButton> createState() => _StepperButtonState();
+}
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.inkPanel,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-          border: Border.all(
-            color: AppColors.inkBorder,
-            width: AppDimensions.borderThin,
+class _StepperButtonState extends State<_StepperButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    final isEnabled = widget.onTap != null;
+
+    return GestureDetector(
+      onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
+      onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.92 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: _isPressed ? colors.inkMuted : colors.inkPanel,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+            border: Border.all(
+              color: colors.inkBorder,
+              width: AppDimensions.borderThin,
+            ),
           ),
-        ),
-        child: Icon(
-          icon,
-          color: isEnabled ? AppColors.textPrimary : AppColors.textHint,
-          size: 20,
+          child: Icon(
+            widget.icon,
+            color: isEnabled ? colors.textPrimary : colors.textHint,
+            size: 20,
+          ),
         ),
       ),
     );
