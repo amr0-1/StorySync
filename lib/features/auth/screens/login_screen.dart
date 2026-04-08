@@ -31,11 +31,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: colors.inkVoid,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+
               // Logo section
               _buildLogo(),
               const SizedBox(height: AppDimensions.space48),
@@ -52,6 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Continue without account
               _buildGuestButton(),
+
+              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
             ],
           ),
         ),

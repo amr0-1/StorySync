@@ -35,12 +35,17 @@ class MangaDexService {
   ///
   /// The [query] parameter is the search term.
   /// Optional [limit] parameter controls the number of results (default: 20, max: 100).
+  /// Optional [fetchChapterCounts] fetches chapter counts for each result (slower, default: false).
   ///
   /// Example:
   /// ```dart
   /// final results = await service.searchManga('Solo Leveling');
   /// ```
-  Future<List<MangaItem>> searchManga(String query, {int limit = 20}) async {
+  Future<List<MangaItem>> searchManga(
+    String query, {
+    int limit = 20,
+    bool fetchChapterCounts = false,
+  }) async {
     if (query.trim().isEmpty) {
       return [];
     }
@@ -51,7 +56,10 @@ class MangaDexService {
         queryParameters: {
           'title': query,
           'limit': limit.clamp(1, 100),
-          'includes[]': 'cover_art', // CRITICAL: Include cover art relationship
+          'includes[]': [
+            'cover_art',
+            'author'
+          ], // Include cover art and author relationships
           'order[relevance]': 'desc',
           'contentRating[]': [
             'safe',
@@ -69,7 +77,19 @@ class MangaDexService {
       final data = response.data as Map<String, dynamic>;
       final mangaList = data['data'] as List<dynamic>? ?? [];
 
-      return mangaList.map((json) => _mapToMangaItem(json)).toList();
+      final items = mangaList.map((json) => _mapToMangaItem(json)).toList();
+
+      // Optionally fetch chapter counts for each manga
+      if (fetchChapterCounts) {
+        await Future.wait(
+          items.map((item) async {
+            final chapters = await getChapterCount(item.mangaDexId);
+            item.totalChapters = chapters;
+          }),
+        );
+      }
+
+      return items;
     } on DioException catch (e) {
       throw MangaDexException(e.userMessage);
     } catch (e) {
@@ -80,12 +100,14 @@ class MangaDexService {
 
   /// Fetches detailed information for a specific manga by its MangaDex ID.
   ///
-  /// Returns a [MangaItem] with full details including synopsis.
+  /// Returns a [MangaItem] with full details including synopsis and chapter count.
   Future<MangaItem> getMangaDetails(String mangaDexId) async {
     try {
       final response = await _dio.get(
         '/manga/$mangaDexId',
-        queryParameters: {'includes[]': 'cover_art'},
+        queryParameters: {
+          'includes[]': ['cover_art', 'author']
+        },
       );
 
       if (response.statusCode != 200) {
@@ -95,7 +117,13 @@ class MangaDexService {
       final data = response.data as Map<String, dynamic>;
       final mangaData = data['data'] as Map<String, dynamic>;
 
-      return _mapToMangaItem(mangaData);
+      final mangaItem = _mapToMangaItem(mangaData);
+
+      // Fetch chapter count
+      final chapterCount = await getChapterCount(mangaDexId);
+      mangaItem.totalChapters = chapterCount;
+
+      return mangaItem;
     } on DioException catch (e) {
       throw MangaDexException(e.userMessage);
     } catch (e) {
@@ -148,12 +176,16 @@ class MangaDexService {
     // Extract description/synopsis (prefer English)
     final synopsis = _extractDescription(attributes);
 
+    // Extract author name from relationships
+    final author = _extractAuthor(relationships);
+
     // Extract cover URL from relationships
     final coverUrl = _extractCoverUrl(id, relationships);
 
     return MangaItem.create(
       mangaDexId: id,
       title: title,
+      author: author,
       coverUrl: coverUrl,
       synopsis: synopsis,
       readingStatus: ReadingStatus.planToRead,
@@ -163,7 +195,7 @@ class MangaDexService {
 
   /// Extracts the best available title from manga attributes.
   ///
-  /// Priority: English > Japanese romanized > Japanese > first available
+  /// Priority: English > Japanese romanized > English from altTitles > Japanese > non-Korean first available
   String _extractTitle(Map<String, dynamic> attributes) {
     final title = attributes['title'] as Map<String, dynamic>? ?? {};
 
@@ -173,18 +205,35 @@ class MangaDexService {
     // Try Japanese romanized
     if (title['ja-ro'] != null) return title['ja-ro'] as String;
 
+    // Check alt titles for English before falling back to other languages
+    final altTitles = attributes['altTitles'] as List<dynamic>? ?? [];
+    for (final alt in altTitles) {
+      if (alt is Map<String, dynamic> && alt['en'] != null) {
+        return alt['en'] as String;
+      }
+    }
+
     // Try Japanese
     if (title['ja'] != null) return title['ja'] as String;
 
-    // Return first available title
-    if (title.isNotEmpty) return title.values.first as String;
+    // Return first available non-Korean title
+    for (final entry in title.entries) {
+      if (entry.key != 'ko' && entry.value != null) {
+        return entry.value as String;
+      }
+    }
 
-    // Fallback to alt titles
-    final altTitles = attributes['altTitles'] as List<dynamic>? ?? [];
+    // If only Korean title is available, use it as last resort
+    if (title['ko'] != null) return title['ko'] as String;
+
+    // Final fallback to alt titles (non-Korean preferred)
     for (final alt in altTitles) {
       if (alt is Map<String, dynamic>) {
-        if (alt['en'] != null) return alt['en'] as String;
-        if (alt.isNotEmpty) return alt.values.first as String;
+        for (final entry in alt.entries) {
+          if (entry.key != 'ko' && entry.value != null) {
+            return entry.value as String;
+          }
+        }
       }
     }
 
@@ -225,6 +274,24 @@ class MangaDexService {
             // Construct full cover URL
             // Format: https://uploads.mangadex.org/covers/{mangaId}/{fileName}
             return '$_coverBaseUrl/$mangaId/$fileName';
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Extracts the author name from manga relationships.
+  ///
+  /// Finds the author relationship and returns the author's name.
+  String? _extractAuthor(List<dynamic> relationships) {
+    for (final rel in relationships) {
+      if (rel is Map<String, dynamic> && rel['type'] == 'author') {
+        final attributes = rel['attributes'] as Map<String, dynamic>?;
+        if (attributes != null) {
+          final name = attributes['name'] as String?;
+          if (name != null) {
+            return name;
           }
         }
       }

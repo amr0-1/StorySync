@@ -17,59 +17,64 @@ const MangaItemSchema = CollectionSchema(
   name: r'MangaItem',
   id: 6638099258669080880,
   properties: {
-    r'chapterProgress': PropertySchema(
+    r'author': PropertySchema(
       id: 0,
+      name: r'author',
+      type: IsarType.string,
+    ),
+    r'chapterProgress': PropertySchema(
+      id: 1,
       name: r'chapterProgress',
       type: IsarType.long,
     ),
     r'coverUrl': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'coverUrl',
       type: IsarType.string,
     ),
     r'lastUpdated': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'mangaDexId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'mangaDexId',
       type: IsarType.string,
     ),
     r'progress': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'progress',
       type: IsarType.double,
     ),
     r'progressPercent': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'progressPercent',
       type: IsarType.long,
     ),
     r'readingStatus': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'readingStatus',
       type: IsarType.byte,
       enumMap: _MangaItemreadingStatusEnumValueMap,
     ),
     r'remainingChapters': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'remainingChapters',
       type: IsarType.long,
     ),
     r'synopsis': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'synopsis',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalChapters': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'totalChapters',
       type: IsarType.long,
     )
@@ -109,6 +114,12 @@ int _mangaItemEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.author;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.coverUrl;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -131,17 +142,18 @@ void _mangaItemSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeLong(offsets[0], object.chapterProgress);
-  writer.writeString(offsets[1], object.coverUrl);
-  writer.writeDateTime(offsets[2], object.lastUpdated);
-  writer.writeString(offsets[3], object.mangaDexId);
-  writer.writeDouble(offsets[4], object.progress);
-  writer.writeLong(offsets[5], object.progressPercent);
-  writer.writeByte(offsets[6], object.readingStatus.index);
-  writer.writeLong(offsets[7], object.remainingChapters);
-  writer.writeString(offsets[8], object.synopsis);
-  writer.writeString(offsets[9], object.title);
-  writer.writeLong(offsets[10], object.totalChapters);
+  writer.writeString(offsets[0], object.author);
+  writer.writeLong(offsets[1], object.chapterProgress);
+  writer.writeString(offsets[2], object.coverUrl);
+  writer.writeDateTime(offsets[3], object.lastUpdated);
+  writer.writeString(offsets[4], object.mangaDexId);
+  writer.writeDouble(offsets[5], object.progress);
+  writer.writeLong(offsets[6], object.progressPercent);
+  writer.writeByte(offsets[7], object.readingStatus.index);
+  writer.writeLong(offsets[8], object.remainingChapters);
+  writer.writeString(offsets[9], object.synopsis);
+  writer.writeString(offsets[10], object.title);
+  writer.writeLong(offsets[11], object.totalChapters);
 }
 
 MangaItem _mangaItemDeserialize(
@@ -151,17 +163,18 @@ MangaItem _mangaItemDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = MangaItem();
-  object.chapterProgress = reader.readLong(offsets[0]);
-  object.coverUrl = reader.readStringOrNull(offsets[1]);
+  object.author = reader.readStringOrNull(offsets[0]);
+  object.chapterProgress = reader.readLong(offsets[1]);
+  object.coverUrl = reader.readStringOrNull(offsets[2]);
   object.id = id;
-  object.lastUpdated = reader.readDateTime(offsets[2]);
-  object.mangaDexId = reader.readString(offsets[3]);
+  object.lastUpdated = reader.readDateTime(offsets[3]);
+  object.mangaDexId = reader.readString(offsets[4]);
   object.readingStatus =
-      _MangaItemreadingStatusValueEnumMap[reader.readByteOrNull(offsets[6])] ??
+      _MangaItemreadingStatusValueEnumMap[reader.readByteOrNull(offsets[7])] ??
           ReadingStatus.reading;
-  object.synopsis = reader.readStringOrNull(offsets[8]);
-  object.title = reader.readString(offsets[9]);
-  object.totalChapters = reader.readLongOrNull(offsets[10]);
+  object.synopsis = reader.readStringOrNull(offsets[9]);
+  object.title = reader.readString(offsets[10]);
+  object.totalChapters = reader.readLongOrNull(offsets[11]);
   return object;
 }
 
@@ -173,28 +186,30 @@ P _mangaItemDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readLong(offset)) as P;
-    case 1:
       return (reader.readStringOrNull(offset)) as P;
-    case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readString(offset)) as P;
-    case 4:
-      return (reader.readDouble(offset)) as P;
-    case 5:
+    case 1:
       return (reader.readLong(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readDouble(offset)) as P;
     case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (_MangaItemreadingStatusValueEnumMap[
               reader.readByteOrNull(offset)] ??
           ReadingStatus.reading) as P;
-    case 7:
-      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -407,6 +422,152 @@ extension MangaItemQueryWhere
 
 extension MangaItemQueryFilter
     on QueryBuilder<MangaItem, MangaItem, QFilterCondition> {
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'author',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'author',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'author',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'author',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'author',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'author',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
       chapterProgressEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1442,6 +1603,18 @@ extension MangaItemQueryLinks
     on QueryBuilder<MangaItem, MangaItem, QFilterCondition> {}
 
 extension MangaItemQuerySortBy on QueryBuilder<MangaItem, MangaItem, QSortBy> {
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> sortByAuthor() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'author', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> sortByAuthorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'author', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy> sortByChapterProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'chapterProgress', Sort.asc);
@@ -1578,6 +1751,18 @@ extension MangaItemQuerySortBy on QueryBuilder<MangaItem, MangaItem, QSortBy> {
 
 extension MangaItemQuerySortThenBy
     on QueryBuilder<MangaItem, MangaItem, QSortThenBy> {
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByAuthor() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'author', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByAuthorDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'author', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByChapterProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'chapterProgress', Sort.asc);
@@ -1726,6 +1911,13 @@ extension MangaItemQuerySortThenBy
 
 extension MangaItemQueryWhereDistinct
     on QueryBuilder<MangaItem, MangaItem, QDistinct> {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByAuthor(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'author', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByChapterProgress() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'chapterProgress');
@@ -1802,6 +1994,12 @@ extension MangaItemQueryProperty
   QueryBuilder<MangaItem, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<MangaItem, String?, QQueryOperations> authorProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'author');
     });
   }
 

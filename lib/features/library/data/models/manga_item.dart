@@ -1,33 +1,9 @@
 import 'package:isar/isar.dart';
+import 'package:storysync/core/models/reading_status.dart';
+
+export 'package:storysync/core/models/reading_status.dart';
 
 part 'manga_item.g.dart';
-
-/// Reading status for tracking manga progress in Isar database
-enum ReadingStatus {
-  reading,
-  completed,
-  onHold,
-  planToRead,
-  dropped;
-
-  /// Display label for UI
-  String get displayLabel => switch (this) {
-    ReadingStatus.reading => 'Reading',
-    ReadingStatus.completed => 'Completed',
-    ReadingStatus.onHold => 'On Hold',
-    ReadingStatus.planToRead => 'Plan to Read',
-    ReadingStatus.dropped => 'Dropped',
-  };
-
-  /// Short label for compact badges
-  String get shortLabel => switch (this) {
-    ReadingStatus.reading => 'Reading',
-    ReadingStatus.completed => 'Done',
-    ReadingStatus.onHold => 'Hold',
-    ReadingStatus.planToRead => 'PTR',
-    ReadingStatus.dropped => 'Dropped',
-  };
-}
 
 /// Isar collection for persisting manga tracking data locally.
 ///
@@ -45,6 +21,9 @@ class MangaItem {
 
   /// Manga title (from MangaDex or user-provided)
   late String title;
+
+  /// Author name (from MangaDex)
+  String? author;
 
   /// Full cover image URL (constructed from MangaDex covers endpoint)
   String? coverUrl;
@@ -72,6 +51,7 @@ class MangaItem {
   MangaItem.create({
     required this.mangaDexId,
     required this.title,
+    this.author,
     this.coverUrl,
     this.synopsis,
     this.readingStatus = ReadingStatus.planToRead,
@@ -93,6 +73,22 @@ class MangaItem {
 
   /// Progress percentage as int (0-100)
   int get progressPercent => (progress * 100).round();
+
+  // ============================================================
+  // UI Compatibility Getters (ignored by Isar)
+  // ============================================================
+
+  /// Alias for mangaDexId - used by UI components
+  @ignore
+  String get uid => mangaDexId;
+
+  /// Alias for readingStatus - used by UI components
+  @ignore
+  ReadingStatus get status => readingStatus;
+
+  /// Alias for chapterProgress - used by UI components
+  @ignore
+  int get currentChapter => chapterProgress;
 
   @override
   String toString() =>

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:storysync/core/models/manga_item.dart';
+import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
@@ -36,7 +36,7 @@ class MangaListTile extends StatelessWidget {
           children: [
             // Thumbnail wrapped in Hero
             Hero(
-              tag: 'cover_${manga.id}',
+              tag: 'cover_${manga.mangaDexId}',
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXS),
                 child: SizedBox(
@@ -57,7 +57,9 @@ class MangaListTile extends StatelessWidget {
                   // Title
                   Text(
                     manga.title,
-                    style: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
+                    style: AppTextStyles.titleSmall.copyWith(
+                      color: colors.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -71,7 +73,9 @@ class MangaListTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             manga.author!,
-                            style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: colors.textSecondary,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

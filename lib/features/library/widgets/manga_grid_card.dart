@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:storysync/core/models/manga_item.dart';
+import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
@@ -59,7 +59,7 @@ class _MangaGridCardState extends State<MangaGridCard> {
                 children: [
                   // Cover image wrapped in Hero
                   Hero(
-                    tag: 'cover_${widget.manga.id}',
+                    tag: 'cover_${widget.manga.mangaDexId}',
                     child: _buildCoverImage(colors),
                   ),
 
@@ -146,7 +146,9 @@ class _MangaGridCardState extends State<MangaGridCard> {
                     Expanded(
                       child: Text(
                         widget.manga.title,
-                        style: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
+                        style: AppTextStyles.titleSmall.copyWith(
+                          color: colors.textPrimary,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -1,60 +1,143 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:storysync/core/models/manga_item.dart';
-import 'package:storysync/core/models/reading_status.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:storysync/features/discover/presentation/controllers/discover_controller.dart';
+import 'package:storysync/features/library/data/models/manga_item.dart';
+import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/chapter_stepper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
 
 /// Manga details screen with hero header and tracker console
-class DetailsScreen extends StatefulWidget {
-  /// The manga ID to display
+class DetailsScreen extends ConsumerStatefulWidget {
+  /// The manga ID to display (MangaDex UUID)
   final String mangaId;
 
   const DetailsScreen({super.key, required this.mangaId});
 
   @override
-  State<DetailsScreen> createState() => _DetailsScreenState();
+  ConsumerState<DetailsScreen> createState() => _DetailsScreenState();
 }
 
-class _DetailsScreenState extends State<DetailsScreen> {
-  // Demo data - replace with actual Isar lookup
-  late MangaItem _manga;
-  late int _currentChapter;
-  late ReadingStatus _status;
+class _DetailsScreenState extends ConsumerState<DetailsScreen> {
+  MangaItem? _manga;
+  bool _isLoading = true;
+  bool _isInLibrary = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Load demo data based on mangaId
-    _manga = _getDemoManga(widget.mangaId);
-    _currentChapter = _manga.currentChapter;
-    _status = _manga.status;
+    _loadManga();
   }
 
-  MangaItem _getDemoManga(String id) {
-    // Demo manga data
-    return const MangaItem(
-      id: '1',
-      title: 'Solo Leveling',
-      author: 'Chugong',
-      coverUrl:
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
-      synopsis:
-          'In a world where hunters — humans who possess magical abilities — must battle deadly monsters to protect the human race from certain annihilation, a notoriously weak hunter named Sung Jinwoo finds himself in a seemingly endless struggle for survival. One day, after narrowly surviving an overwhelmingly powerful double dungeon that nearly wipes out his entire party, a mysterious program called the System chooses him as its sole player and in turn, gives him the extremely rare potential of unlimited growth. With his new found power, Jinwoo grows rapidly and soon becomes the strongest hunter in the world.',
-      demographic: 'Seinen',
-      publicationStatus: 'Finished',
-      status: ReadingStatus.reading,
-      currentChapter: 134,
-      totalChapters: 179,
-    );
+  Future<void> _loadManga() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // First check if it's in the library
+      final libraryManga = await ref
+          .read(libraryControllerProvider.notifier)
+          .getManga(widget.mangaId);
+
+      if (libraryManga != null) {
+        setState(() {
+          _manga = libraryManga;
+          _isInLibrary = true;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // If not in library, fetch from MangaDex
+      final mangaDexManga = await ref
+          .read(discoverControllerProvider.notifier)
+          .getMangaDetails(widget.mangaId);
+
+      setState(() {
+        _manga = mangaDexManga;
+        _isInLibrary = false;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final VoidInkColors colors = Theme.of(context).extension<VoidInkColors>()!;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: colors.inkVoid,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
+          ),
+        ),
+      );
+    }
+
+    if (_error != null || _manga == null) {
+      return Scaffold(
+        backgroundColor: colors.inkVoid,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: colors.textHint,
+              ),
+              const SizedBox(height: AppDimensions.space16),
+              Text(
+                'Failed to load manga',
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.space8),
+              Text(
+                _error ?? 'Unknown error',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppDimensions.space16),
+              TextButton(
+                onPressed: _loadManga,
+                child: Text(
+                  'Retry',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: colors.goldSpark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final manga = _manga!;
 
     return Scaffold(
       backgroundColor: colors.inkVoid,
@@ -62,7 +145,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         slivers: [
           // Hero header
           SliverToBoxAdapter(
-            child: _HeroHeader(manga: _manga, colors: colors),
+            child: _HeroHeader(manga: manga, colors: colors),
           ),
 
           // Content
@@ -71,30 +154,35 @@ class _DetailsScreenState extends State<DetailsScreen> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 // Info block
-                _InfoBlock(manga: _manga, status: _status, colors: colors),
+                _InfoBlock(
+                  manga: manga,
+                  status: manga.readingStatus,
+                  colors: colors,
+                ),
                 const SizedBox(height: AppDimensions.space24),
 
                 // Synopsis
-                _Synopsis(synopsis: _manga.synopsis, colors: colors),
+                _Synopsis(synopsis: manga.synopsis, colors: colors),
                 const SizedBox(height: AppDimensions.space24),
 
-                // Tracker console
-                _TrackerConsole(
-                  manga: _manga,
-                  status: _status,
-                  currentChapter: _currentChapter,
-                  colors: colors,
-                  onStatusChanged: (status) {
-                    setState(() {
-                      _status = status;
-                    });
-                  },
-                  onChapterChanged: (chapter) {
-                    setState(() {
-                      _currentChapter = chapter;
-                    });
-                  },
-                ),
+                // Add to Library button (if not in library)
+                if (!_isInLibrary) ...[
+                  _AddToLibraryButton(
+                    colors: colors,
+                    onPressed: () => _addToLibrary(manga),
+                  ),
+                  const SizedBox(height: AppDimensions.space24),
+                ],
+
+                // Tracker console (if in library)
+                if (_isInLibrary)
+                  _TrackerConsole(
+                    manga: manga,
+                    colors: colors,
+                    onStatusChanged: (status) => _updateStatus(manga, status),
+                    onChapterChanged: (chapter) =>
+                        _updateChapter(manga, chapter),
+                  ),
                 const SizedBox(height: AppDimensions.space32),
               ]),
             ),
@@ -103,16 +191,92 @@ class _DetailsScreenState extends State<DetailsScreen> {
       ),
     );
   }
+
+  Future<void> _addToLibrary(MangaItem manga) async {
+    await ref.read(libraryControllerProvider.notifier).addManga(manga);
+
+    if (mounted) {
+      setState(() {
+        _isInLibrary = true;
+      });
+      VoidInkSnackbar.showSuccess(context, 'Added to Library');
+      // Reload to get the library version
+      _loadManga();
+    }
+  }
+
+  Future<void> _updateStatus(MangaItem manga, ReadingStatus status) async {
+    final success = await ref
+        .read(libraryControllerProvider.notifier)
+        .updateStatus(manga.mangaDexId, status);
+
+    if (mounted) {
+      if (success) {
+        VoidInkSnackbar.showSuccess(context, 'Status updated');
+        _refreshMangaData();
+      } else {
+        VoidInkSnackbar.showError(context, 'Failed to update status');
+      }
+    }
+  }
+
+  /// Refreshes manga data without showing loading spinner
+  Future<void> _refreshMangaData() async {
+    try {
+      final updatedManga = await ref
+          .read(libraryControllerProvider.notifier)
+          .getManga(widget.mangaId);
+
+      if (mounted && updatedManga != null) {
+        setState(() {
+          _manga = updatedManga;
+        });
+      }
+    } catch (e) {
+      // Silently fail - the UI already shows the previous state
+    }
+  }
+
+  Future<void> _updateChapter(MangaItem manga, int newChapter) async {
+    final currentChapter = manga.chapterProgress;
+
+    if (newChapter > currentChapter) {
+      // Incrementing
+      final success = await ref
+          .read(libraryControllerProvider.notifier)
+          .incrementChapter(manga.mangaDexId);
+
+      if (mounted) {
+        if (success) {
+          VoidInkSnackbar.showSuccess(context, '+1 Chapter Logged');
+          _refreshMangaData();
+        } else {
+          VoidInkSnackbar.showError(context, 'Already at max chapters');
+        }
+      }
+    } else if (newChapter < currentChapter) {
+      // Decrementing
+      final success = await ref
+          .read(libraryControllerProvider.notifier)
+          .decrementChapter(manga.mangaDexId);
+
+      if (mounted) {
+        if (success) {
+          VoidInkSnackbar.showSuccess(context, '-1 Chapter');
+          _refreshMangaData();
+        } else {
+          VoidInkSnackbar.showError(context, 'Already at 0 chapters');
+        }
+      }
+    }
+  }
 }
 
 class _HeroHeader extends StatelessWidget {
   final MangaItem manga;
   final VoidInkColors colors;
 
-  const _HeroHeader({
-    required this.manga,
-    required this.colors,
-  });
+  const _HeroHeader({required this.manga, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -135,14 +299,15 @@ class _HeroHeader extends StatelessWidget {
                 child: Image.network(
                   manga.coverUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(color: colors.inkPanel),
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: colors.inkPanel),
                 ),
               ),
             )
           else
             Container(color: colors.inkPanel),
 
-          // Bottom gradient — uses inkVoid so it blends into scaffold
+          // Bottom gradient
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -163,7 +328,7 @@ class _HeroHeader extends StatelessWidget {
           // Cover image centered - Hero animation target
           Center(
             child: Hero(
-              tag: 'cover_${manga.id}',
+              tag: 'cover_${manga.mangaDexId}',
               child: Container(
                 width: 130,
                 decoration: BoxDecoration(
@@ -182,10 +347,14 @@ class _HeroHeader extends StatelessWidget {
                       ? Image.network(
                           manga.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _CoverPlaceholder(colors: colors),
+                          errorBuilder: (context, error, stackTrace) =>
+                              _CoverPlaceholder(colors: colors),
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
-                            return _CoverPlaceholder(colors: colors, showLoading: true);
+                            return _CoverPlaceholder(
+                              colors: colors,
+                              showLoading: true,
+                            );
                           },
                         )
                       : _CoverPlaceholder(colors: colors),
@@ -214,10 +383,7 @@ class _HeroHeader extends StatelessWidget {
             top: MediaQuery.of(context).padding.top + 8,
             left: 8,
             child: IconButton(
-              icon: Icon(
-                Icons.arrow_back_rounded,
-                color: colors.textPrimary,
-              ),
+              icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),
@@ -231,10 +397,7 @@ class _CoverPlaceholder extends StatelessWidget {
   final VoidInkColors colors;
   final bool showLoading;
 
-  const _CoverPlaceholder({
-    required this.colors,
-    this.showLoading = false,
-  });
+  const _CoverPlaceholder({required this.colors, this.showLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -249,9 +412,7 @@ class _CoverPlaceholder extends StatelessWidget {
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    colors.goldSpark,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
                 ),
               )
             : Icon(
@@ -281,38 +442,27 @@ class _InfoBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Author row
-        Row(
-          children: [
-            Icon(
-              Icons.person_outline_rounded,
-              size: 16,
-              color: colors.textSecondary,
-            ),
-            const SizedBox(width: AppDimensions.space8),
-            Text(
-              manga.author ?? 'Unknown',
-              style: AppTextStyles.bodyMedium.copyWith(
+        if (manga.author != null)
+          Row(
+            children: [
+              Icon(
+                Icons.person_outline_rounded,
+                size: 16,
                 color: colors.textSecondary,
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppDimensions.space8),
-
-        // Status row
-        Row(
-          children: [
-            StatusBadge(status: status),
-            const SizedBox(width: AppDimensions.space12),
-            if (manga.demographic != null)
+              const SizedBox(width: AppDimensions.space8),
               Text(
-                manga.demographic!,
-                style: AppTextStyles.bodySmall.copyWith(
+                manga.author!,
+                style: AppTextStyles.bodyMedium.copyWith(
                   color: colors.textSecondary,
                 ),
               ),
-          ],
-        ),
+            ],
+          ),
+        if (manga.author != null) const SizedBox(height: AppDimensions.space8),
+
+        // Status row
+        Row(children: [StatusBadge(status: status)]),
       ],
     );
   }
@@ -322,10 +472,7 @@ class _Synopsis extends StatefulWidget {
   final String? synopsis;
   final VoidInkColors colors;
 
-  const _Synopsis({
-    required this.synopsis,
-    required this.colors,
-  });
+  const _Synopsis({required this.synopsis, required this.colors});
 
   @override
   State<_Synopsis> createState() => _SynopsisState();
@@ -383,7 +530,9 @@ class _SynopsisState extends State<_Synopsis> {
           ),
           child: Text(
             _expanded ? 'Show less' : 'Read more',
-            style: AppTextStyles.bodySmall.copyWith(color: widget.colors.goldSpark),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: widget.colors.goldSpark,
+            ),
           ),
         ),
       ],
@@ -391,18 +540,44 @@ class _SynopsisState extends State<_Synopsis> {
   }
 }
 
+class _AddToLibraryButton extends StatelessWidget {
+  final VoidInkColors colors;
+  final VoidCallback onPressed;
+
+  const _AddToLibraryButton({required this.colors, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(Icons.add_rounded, color: colors.inkVoid),
+        label: Text(
+          'Add to Library',
+          style: AppTextStyles.titleMedium.copyWith(color: colors.inkVoid),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colors.goldSpark,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TrackerConsole extends StatelessWidget {
   final MangaItem manga;
-  final ReadingStatus status;
-  final int currentChapter;
   final VoidInkColors colors;
   final ValueChanged<ReadingStatus> onStatusChanged;
   final ValueChanged<int> onChapterChanged;
 
   const _TrackerConsole({
     required this.manga,
-    required this.status,
-    required this.currentChapter,
     required this.colors,
     required this.onStatusChanged,
     required this.onChapterChanged,
@@ -430,7 +605,7 @@ class _TrackerConsole extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.space8),
           _StatusDropdown(
-            status: status,
+            status: manga.readingStatus,
             colors: colors,
             onChanged: onStatusChanged,
           ),
@@ -438,7 +613,7 @@ class _TrackerConsole extends StatelessWidget {
 
           // Chapter stepper
           ChapterStepper(
-            currentChapter: currentChapter,
+            currentChapter: manga.chapterProgress,
             totalChapters: manga.totalChapters,
             onChanged: onChapterChanged,
           ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:storysync/core/models/manga_item.dart';
-import 'package:storysync/core/models/reading_status.dart';
+import 'package:storysync/features/library/data/models/manga_item.dart';
+import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
@@ -11,78 +12,22 @@ import 'package:storysync/features/library/widgets/manga_list_tile.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Library screen with grid/list toggle and category tabs
-class LibraryScreen extends StatefulWidget {
+class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen>
+class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with SingleTickerProviderStateMixin {
   final ValueNotifier<bool> _isGridView = ValueNotifier(true);
   late TabController _tabController;
 
-  // Demo data - replace with actual Isar data
-  final List<MangaItem> _demoItems = [
-    const MangaItem(
-      id: '1',
-      title: 'Solo Leveling',
-      author: 'Chugong',
-      coverUrl:
-          'https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg',
-      status: ReadingStatus.reading,
-      currentChapter: 134,
-      totalChapters: 179,
-    ),
-    const MangaItem(
-      id: '2',
-      title: 'One Piece',
-      author: 'Eiichiro Oda',
-      coverUrl:
-          'https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2c1b4e1a-5c5f-4efa-96d8-f7e3c6e0c8d5.jpg',
-      status: ReadingStatus.reading,
-      currentChapter: 1089,
-      totalChapters: null,
-    ),
-    const MangaItem(
-      id: '3',
-      title: 'Chainsaw Man',
-      author: 'Tatsuki Fujimoto',
-      status: ReadingStatus.completed,
-      currentChapter: 97,
-      totalChapters: 97,
-    ),
-    const MangaItem(
-      id: '4',
-      title: 'Vagabond',
-      author: 'Takehiko Inoue',
-      status: ReadingStatus.onHold,
-      currentChapter: 200,
-      totalChapters: 327,
-    ),
-    const MangaItem(
-      id: '5',
-      title: 'Berserk',
-      author: 'Kentaro Miura',
-      status: ReadingStatus.planToRead,
-      currentChapter: 0,
-      totalChapters: 374,
-    ),
-    const MangaItem(
-      id: '6',
-      title: 'Tower of God',
-      author: 'SIU',
-      status: ReadingStatus.reading,
-      currentChapter: 450,
-      totalChapters: null,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -90,6 +35,55 @@ class _LibraryScreenState extends State<LibraryScreen>
     _tabController.dispose();
     _isGridView.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshMetadata(BuildContext context) async {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.inkSurface,
+        content: Row(
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
+            ),
+            const SizedBox(width: AppDimensions.space16),
+            Text(
+              'Refreshing titles...',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final count = await ref
+          .read(libraryControllerProvider.notifier)
+          .refreshAllMetadata();
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        VoidInkSnackbar.showSuccess(
+          context,
+          'Updated $count manga title${count != 1 ? 's' : ''}',
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        VoidInkSnackbar.showError(
+          context,
+          'Failed to refresh: ${e.toString()}',
+        );
+      }
+    }
   }
 
   @override
@@ -113,6 +107,12 @@ class _LibraryScreenState extends State<LibraryScreen>
           ],
         ),
         actions: [
+          // Refresh metadata button
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: colors.textSecondary),
+            tooltip: 'Refresh titles from MangaDex',
+            onPressed: () => _refreshMetadata(context),
+          ),
           ValueListenableBuilder<bool>(
             valueListenable: _isGridView,
             builder: (context, isGrid, _) {
@@ -137,26 +137,27 @@ class _LibraryScreenState extends State<LibraryScreen>
         controller: _tabController,
         children: [
           _LibraryContentWrapper(
-            items: _demoItems,
             status: ReadingStatus.reading,
             isGridView: _isGridView,
             colors: colors,
           ),
           _LibraryContentWrapper(
-            items: _demoItems,
             status: ReadingStatus.completed,
             isGridView: _isGridView,
             colors: colors,
           ),
           _LibraryContentWrapper(
-            items: _demoItems,
             status: ReadingStatus.onHold,
             isGridView: _isGridView,
             colors: colors,
           ),
           _LibraryContentWrapper(
-            items: _demoItems,
             status: ReadingStatus.planToRead,
+            isGridView: _isGridView,
+            colors: colors,
+          ),
+          _LibraryContentWrapper(
+            status: ReadingStatus.dropped,
             isGridView: _isGridView,
             colors: colors,
           ),
@@ -189,66 +190,88 @@ class _LibraryTabBar extends StatelessWidget {
         Tab(text: 'Completed'),
         Tab(text: 'On Hold'),
         Tab(text: 'Plan to Read'),
+        Tab(text: 'Dropped'),
       ],
     );
   }
 }
 
-class _LibraryContentWrapper extends StatelessWidget {
-  final List<MangaItem> items;
+class _LibraryContentWrapper extends ConsumerWidget {
   final ReadingStatus status;
   final ValueNotifier<bool> isGridView;
   final VoidInkColors colors;
 
   const _LibraryContentWrapper({
-    required this.items,
     required this.status,
     required this.isGridView,
     required this.colors,
   });
 
-  Future<void> _onRefresh() async {
-    // TODO: Refresh data from API/Isar when integrated
-    await Future.delayed(const Duration(seconds: 1));
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final List<MangaItem> filteredItems = items
-        .where((item) => item.status == status)
-        .toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncMangaList = ref.watch(libraryByStatusProvider(status));
 
-    if (filteredItems.isEmpty) {
-      return _EmptyState(status: status, colors: colors);
-    }
+    return asyncMangaList.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return _EmptyState(status: status, colors: colors);
+        }
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: isGridView,
-      builder: (context, isGrid, _) {
-        return RefreshIndicator(
-          color: colors.goldSpark,
-          backgroundColor: colors.inkSurface,
-          onRefresh: _onRefresh,
-          child: isGrid
-              ? _GridViewList(
-                  items: filteredItems,
-                  onDetails: (manga) => context.push('/details/${manga.id}'),
-                  onIncrement: (manga) => _incrementChapter(context, manga),
-                )
-              : _ListViewList(
-                  items: filteredItems,
-                  colors: colors,
-                  onDetails: (manga) => context.push('/details/${manga.id}'),
-                  onIncrement: (manga) => _incrementChapter(context, manga),
-                ),
+        return ValueListenableBuilder<bool>(
+          valueListenable: isGridView,
+          builder: (context, isGrid, _) {
+            return RefreshIndicator(
+              color: colors.goldSpark,
+              backgroundColor: colors.inkSurface,
+              onRefresh: () async {
+                // Invalidate the provider to trigger a refresh
+                ref.invalidate(libraryByStatusProvider(status));
+              },
+              child: isGrid
+                  ? _GridViewList(
+                      items: items,
+                      onDetails: (manga) =>
+                          context.push('/details/${manga.mangaDexId}'),
+                      onIncrement: (manga) =>
+                          _incrementChapter(context, ref, manga),
+                    )
+                  : _ListViewList(
+                      items: items,
+                      colors: colors,
+                      onDetails: (manga) =>
+                          context.push('/details/${manga.mangaDexId}'),
+                      onIncrement: (manga) =>
+                          _incrementChapter(context, ref, manga),
+                    ),
+            );
+          },
         );
       },
+      loading: () => _ShimmerSkeleton(colors: colors),
+      error: (error, stack) => _ErrorState(
+        error: error.toString(),
+        colors: colors,
+        onRetry: () => ref.invalidate(libraryByStatusProvider(status)),
+      ),
     );
   }
 
-  void _incrementChapter(BuildContext context, MangaItem manga) {
-    // TODO: Implement chapter increment with Isar
-    VoidInkSnackbar.showSuccess(context, '+1 Chapter Logged');
+  Future<void> _incrementChapter(
+    BuildContext context,
+    WidgetRef ref,
+    MangaItem manga,
+  ) async {
+    final success = await ref
+        .read(libraryControllerProvider.notifier)
+        .incrementChapter(manga.mangaDexId);
+
+    if (context.mounted) {
+      if (success) {
+        VoidInkSnackbar.showSuccess(context, '+1 Chapter Logged');
+      } else {
+        VoidInkSnackbar.showError(context, 'Already at max chapters');
+      }
+    }
   }
 }
 
@@ -281,6 +304,138 @@ class _EmptyState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final String error;
+  final VoidInkColors colors;
+  final VoidCallback onRetry;
+
+  const _ErrorState({
+    required this.error,
+    required this.colors,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.space24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 64, color: colors.textHint),
+            const SizedBox(height: AppDimensions.space16),
+            Text(
+              'Something went wrong',
+              style: AppTextStyles.titleMedium.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space8),
+            Text(
+              error,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppDimensions.space16),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                'Retry',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: colors.goldSpark,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShimmerSkeleton extends StatelessWidget {
+  final VoidInkColors colors;
+
+  const _ShimmerSkeleton({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(AppDimensions.space16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: AppDimensions.space12,
+        crossAxisSpacing: AppDimensions.space12,
+        childAspectRatio:
+            AppDimensions.gridCardWidth / AppDimensions.gridCardHeight,
+      ),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.inkSurface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+            border: Border.all(
+              color: colors.inkBorder,
+              width: AppDimensions.borderThin,
+            ),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colors.inkPanel,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppDimensions.radiusMD),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppDimensions.space8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 14,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: colors.inkPanel,
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusXS,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        height: 12,
+                        width: 60,
+                        decoration: BoxDecoration(
+                          color: colors.inkPanel,
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusFull,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
