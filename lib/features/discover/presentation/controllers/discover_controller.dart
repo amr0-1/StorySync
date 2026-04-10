@@ -22,14 +22,16 @@ class DiscoverController extends _$DiscoverController {
   ///
   /// Sets state to loading while fetching, then updates with results
   /// or error state.
-  Future<void> search(String query) async {
+  Future<void> search(String query, {bool isRefresh = false}) async {
     if (query.trim().isEmpty) {
       state = const AsyncData(<MangaItem>[]);
       return;
     }
 
-    // Set loading state
-    state = const AsyncLoading();
+    // Only set loading state if not refreshing (to avoid breaking RefreshIndicator)
+    if (!isRefresh) {
+      state = const AsyncLoading();
+    }
 
     // Perform search
     state = await AsyncValue.guard(() async {
@@ -54,5 +56,20 @@ class DiscoverController extends _$DiscoverController {
   /// Returns null if the count cannot be determined.
   Future<int?> getChapterCount(String mangaDexId) async {
     return _mangaDexService.getChapterCount(mangaDexId);
+  }
+
+  /// Updates a manga in the current results list.
+  ///
+  /// Used when the user edits manga information.
+  void updateManga(String mangaDexId, MangaItem updatedManga) {
+    state.whenData((mangaList) {
+      final updatedList = mangaList.map((manga) {
+        if (manga.mangaDexId == mangaDexId) {
+          return updatedManga;
+        }
+        return manga;
+      }).toList();
+      state = AsyncData(updatedList);
+    });
   }
 }

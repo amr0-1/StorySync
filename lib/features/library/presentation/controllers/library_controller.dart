@@ -25,6 +25,14 @@ class LibraryController extends _$LibraryController {
     await _isarService.saveManga(item);
   }
 
+  /// Updates an existing manga item in the library.
+  ///
+  /// This is an alias for [addManga] - due to the unique index on mangaDexId,
+  /// saving a manga with an existing ID will update it.
+  Future<void> updateManga(MangaItem item) async {
+    await _isarService.saveManga(item);
+  }
+
   /// Increments the chapter progress of a manga by 1.
   ///
   /// Returns `true` if successful, `false` if manga not found or at max.

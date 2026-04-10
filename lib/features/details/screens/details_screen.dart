@@ -10,6 +10,7 @@ import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/chapter_stepper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
+import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -145,7 +146,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         slivers: [
           // Hero header
           SliverToBoxAdapter(
-            child: _HeroHeader(manga: manga, colors: colors),
+            child: _HeroHeader(
+              manga: manga,
+              colors: colors,
+              onEdit: () => _showEditDialog(manga),
+            ),
           ),
 
           // Content
@@ -270,13 +275,47 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       }
     }
   }
+
+  void _showEditDialog(MangaItem manga) {
+    showDialog(
+      context: context,
+      builder: (ctx) => EditMangaDialog(
+        manga: manga,
+        onSave: (updatedManga) async {
+          if (_isInLibrary) {
+            // If in library, update in the database
+            await ref
+                .read(libraryControllerProvider.notifier)
+                .updateManga(updatedManga);
+            if (mounted) {
+              VoidInkSnackbar.showSuccess(context, 'Manga updated');
+              _loadManga();
+            }
+          } else {
+            // If not in library, just update local state
+            setState(() {
+              _manga = updatedManga;
+            });
+            if (mounted) {
+              VoidInkSnackbar.showSuccess(context, 'Changes saved locally');
+            }
+          }
+        },
+      ),
+    );
+  }
 }
 
 class _HeroHeader extends StatelessWidget {
   final MangaItem manga;
   final VoidInkColors colors;
+  final VoidCallback onEdit;
 
-  const _HeroHeader({required this.manga, required this.colors});
+  const _HeroHeader({
+    required this.manga,
+    required this.colors,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -385,6 +424,16 @@ class _HeroHeader extends StatelessWidget {
             child: IconButton(
               icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
               onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+
+          // Edit button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: IconButton(
+              icon: Icon(Icons.edit_outlined, color: colors.textPrimary),
+              onPressed: onEdit,
             ),
           ),
         ],

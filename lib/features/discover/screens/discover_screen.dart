@@ -10,6 +10,8 @@ import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
+import 'package:storysync/shared/widgets/chapter_badge.dart';
+import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 
 /// Search and discover screen for finding new manga
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -92,7 +94,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     if (_searchController.text.isNotEmpty) {
       await ref
           .read(discoverControllerProvider.notifier)
-          .search(_searchController.text);
+          .search(_searchController.text, isRefresh: true);
     }
   }
 
@@ -134,7 +136,12 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   }
 
   void _navigateToDetails(MangaItem manga) {
-    context.push('/details/${manga.mangaDexId}');
+    // Defer navigation to avoid Navigator lock assertion
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.push('/details/${manga.mangaDexId}');
+      }
+    });
   }
 
   Future<void> _addToLibrary(MangaItem manga) async {
@@ -251,6 +258,12 @@ class _DiscoverContent extends ConsumerWidget {
           onRefresh: onRefresh,
           onDetails: onDetails,
           onAdd: onAdd,
+          onEdit: (originalManga, updatedManga) {
+            // Update the manga in the results list
+            ref
+                .read(discoverControllerProvider.notifier)
+                .updateManga(originalManga.mangaDexId, updatedManga);
+          },
         );
       },
       loading: () => _ShimmerSkeleton(colors: colors),
@@ -468,6 +481,7 @@ class _ResultsList extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final void Function(MangaItem) onDetails;
   final void Function(MangaItem) onAdd;
+  final void Function(MangaItem original, MangaItem updated) onEdit;
 
   const _ResultsList({
     required this.results,
@@ -475,6 +489,7 @@ class _ResultsList extends StatelessWidget {
     required this.onRefresh,
     required this.onDetails,
     required this.onAdd,
+    required this.onEdit,
   });
 
   @override
@@ -494,6 +509,7 @@ class _ResultsList extends StatelessWidget {
             result: result,
             onTap: () => onDetails(result),
             onAdd: () => onAdd(result),
+            onEdit: (updated) => onEdit(result, updated),
           );
         },
       ),
@@ -706,11 +722,13 @@ class _DiscoverResultTile extends StatelessWidget {
   final MangaItem result;
   final VoidCallback onTap;
   final VoidCallback onAdd;
+  final void Function(MangaItem) onEdit;
 
   const _DiscoverResultTile({
     required this.result,
     required this.onTap,
     required this.onAdd,
+    required this.onEdit,
   });
 
   @override
@@ -779,18 +797,47 @@ class _DiscoverResultTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  _buildStatusPill(colors),
+                  Row(
+                    children: [
+                      _buildStatusPill(colors),
+                      if (result.totalChapters != null) ...[
+                        const SizedBox(width: 8),
+                        ChapterBadge(current: 0, total: result.totalChapters),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
 
-            // Add button
-            IconButton(
-              icon: Icon(
-                Icons.add_circle_outline_rounded,
-                color: colors.goldSpark,
-              ),
-              onPressed: onAdd,
+            // Action buttons
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Edit button
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: colors.textSecondary,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          EditMangaDialog(manga: result, onSave: onEdit),
+                    );
+                  },
+                ),
+                // Add button
+                IconButton(
+                  icon: Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: colors.goldSpark,
+                  ),
+                  onPressed: onAdd,
+                ),
+              ],
             ),
           ],
         ),

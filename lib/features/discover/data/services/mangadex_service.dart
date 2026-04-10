@@ -58,7 +58,7 @@ class MangaDexService {
           'limit': limit.clamp(1, 100),
           'includes[]': [
             'cover_art',
-            'author'
+            'author',
           ], // Include cover art and author relationships
           'order[relevance]': 'desc',
           'contentRating[]': [
@@ -106,7 +106,7 @@ class MangaDexService {
       final response = await _dio.get(
         '/manga/$mangaDexId',
         queryParameters: {
-          'includes[]': ['cover_art', 'author']
+          'includes[]': ['cover_art', 'author'],
         },
       );
 
@@ -137,29 +137,57 @@ class MangaDexService {
   /// Returns the total number of chapters if available.
   Future<int?> getChapterCount(String mangaDexId) async {
     try {
-      final response = await _dio.get(
-        '/manga/$mangaDexId/aggregate',
-        queryParameters: {'translatedLanguage[]': 'en'},
-      );
+      print('Fetching chapter count for manga: $mangaDexId');
+      // Don't filter by language to get total chapter count regardless of translation
+      final response = await _dio.get('/manga/$mangaDexId/aggregate');
 
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) {
+        print(
+          'Chapter count fetch failed with status ${response.statusCode} for $mangaDexId',
+        );
+        return null;
+      }
 
       final data = response.data as Map<String, dynamic>;
+      print('Aggregate response data keys: ${data.keys}');
+
       final volumes = data['volumes'] as Map<String, dynamic>? ?? {};
+      print('Found ${volumes.length} volumes for manga $mangaDexId');
+
+      if (volumes.isEmpty) {
+        print('No volumes found in aggregate data for manga $mangaDexId');
+        return null;
+      }
 
       // Count unique chapters across all volumes
       final chapters = <String>{};
-      for (final volume in volumes.values) {
-        if (volume is Map<String, dynamic>) {
+      for (final volumeEntry in volumes.entries) {
+        final volumeKey = volumeEntry.key;
+        final volumeData = volumeEntry.value;
+
+        if (volumeData is Map<String, dynamic>) {
           final volumeChapters =
-              volume['chapters'] as Map<String, dynamic>? ?? {};
+              volumeData['chapters'] as Map<String, dynamic>? ?? {};
+          if (volumeChapters.isNotEmpty) {
+            print('  Volume $volumeKey has ${volumeChapters.length} chapters');
+          }
           chapters.addAll(volumeChapters.keys);
         }
       }
 
-      return chapters.isEmpty ? null : chapters.length;
-    } catch (e) {
-      // Silently return null if chapter count fetch fails
+      if (chapters.isEmpty) {
+        print('No chapters found in any volume for manga $mangaDexId');
+        return null;
+      }
+
+      print(
+        'Successfully fetched ${chapters.length} total unique chapters for manga $mangaDexId',
+      );
+      return chapters.length;
+    } catch (e, stackTrace) {
+      // Log detailed error information
+      print('Error fetching chapter count for $mangaDexId: $e');
+      print('Stack trace: $stackTrace');
       return null;
     }
   }
