@@ -72,6 +72,8 @@ class _EditMangaDialogState extends State<EditMangaDialog> {
             : int.tryParse(_totalChaptersController.text.trim()),
         readingStatus: widget.manga.readingStatus,
         chapterProgress: widget.manga.chapterProgress,
+        source: widget.manga.source,
+        hasCustomMetadata: true,
       );
 
       // Copy the Isar ID if it exists (for existing items)

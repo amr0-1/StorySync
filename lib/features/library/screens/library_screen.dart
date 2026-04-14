@@ -9,6 +9,7 @@ import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/features/library/widgets/manga_grid_card.dart';
 import 'package:storysync/features/library/widgets/manga_list_tile.dart';
+import 'package:storysync/features/library/presentation/widgets/manual_add_dialog.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 
 /// Library screen with grid/list toggle and category tabs
@@ -70,20 +71,42 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        VoidInkSnackbar.showSuccess(
-          context,
-          'Updated $count manga title${count != 1 ? 's' : ''}',
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            VoidInkSnackbar.showSuccess(
+              context,
+              'Updated $count manga title${count != 1 ? 's' : ''}',
+            );
+          }
+        });
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
-        VoidInkSnackbar.showError(
-          context,
-          'Failed to refresh: ${e.toString()}',
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            VoidInkSnackbar.showError(
+              context,
+              'Failed to refresh: ${e.toString()}',
+            );
+          }
+        });
       }
     }
+  }
+
+  void _showManualAddDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => ManualAddDialog(
+        onSave: (newItem) async {
+          await ref.read(libraryControllerProvider.notifier).addManga(newItem);
+          if (context.mounted) {
+            VoidInkSnackbar.showSuccess(context, 'Title added manually');
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -107,6 +130,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.add_circle_outline_rounded,
+              color: colors.textSecondary,
+            ),
+            tooltip: 'Add Manga Manually',
+            onPressed: () => _showManualAddDialog(context),
+          ),
           // Refresh metadata button
           IconButton(
             icon: Icon(Icons.refresh_rounded, color: colors.textSecondary),
@@ -266,9 +297,7 @@ class _LibraryContentWrapper extends ConsumerWidget {
         .incrementChapter(manga.mangaDexId);
 
     if (context.mounted) {
-      if (success) {
-        VoidInkSnackbar.showSuccess(context, '+1 Chapter Logged');
-      } else {
+      if (!success) {
         VoidInkSnackbar.showError(context, 'Already at max chapters');
       }
     }

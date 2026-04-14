@@ -4,6 +4,8 @@ import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 
+export 'package:storysync/core/theme/app_colors.dart';
+
 /// Void Ink theme - premium theming for StorySync manga tracking
 abstract class AppTheme {
   /// Primary dark theme with VoidInkColors extension
@@ -31,17 +33,39 @@ abstract class AppTheme {
       ),
       fontFamily: 'DMSans',
       textTheme: TextTheme(
-        displayLarge: AppTextStyles.displayLarge.copyWith(color: colors.textPrimary),
-        displayMedium: AppTextStyles.displayMedium.copyWith(color: colors.textPrimary),
-        headlineMedium: AppTextStyles.headlineMedium.copyWith(color: colors.textPrimary),
-        headlineSmall: AppTextStyles.headlineSmall.copyWith(color: colors.textPrimary),
-        titleLarge: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
-        titleMedium: AppTextStyles.titleMedium.copyWith(color: colors.textPrimary),
-        titleSmall: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
-        bodyMedium: AppTextStyles.bodyMedium.copyWith(color: colors.textSecondary),
-        bodySmall: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
-        labelMedium: AppTextStyles.labelMedium.copyWith(color: colors.textSecondary),
-        labelSmall: AppTextStyles.labelSmall.copyWith(color: colors.textSecondary),
+        displayLarge: AppTextStyles.displayLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        displayMedium: AppTextStyles.displayMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        headlineMedium: AppTextStyles.headlineMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        headlineSmall: AppTextStyles.headlineSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleLarge: AppTextStyles.titleLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleMedium: AppTextStyles.titleMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleSmall: AppTextStyles.titleSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        bodyMedium: AppTextStyles.bodyMedium.copyWith(
+          color: colors.textSecondary,
+        ),
+        bodySmall: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
+        labelMedium: AppTextStyles.labelMedium.copyWith(
+          color: colors.textSecondary,
+        ),
+        labelSmall: AppTextStyles.labelSmall.copyWith(
+          color: colors.textSecondary,
+        ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.inkVoid,
@@ -53,7 +77,9 @@ abstract class AppTheme {
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
-        titleTextStyle: AppTextStyles.headlineMedium.copyWith(color: colors.textPrimary),
+        titleTextStyle: AppTextStyles.headlineMedium.copyWith(
+          color: colors.textPrimary,
+        ),
         centerTitle: false,
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -131,7 +157,9 @@ abstract class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: colors.inkPanel,
-        labelStyle: AppTextStyles.labelSmall.copyWith(color: colors.textPrimary),
+        labelStyle: AppTextStyles.labelSmall.copyWith(
+          color: colors.textPrimary,
+        ),
         side: BorderSide(
           color: colors.inkBorder,
           width: AppDimensions.borderThin,
@@ -146,9 +174,15 @@ abstract class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
         ),
-        titleTextStyle: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
-        subtitleTextStyle: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
-        leadingAndTrailingTextStyle: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+        titleTextStyle: AppTextStyles.titleSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        subtitleTextStyle: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
+        leadingAndTrailingTextStyle: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
         iconColor: colors.textSecondary,
       ),
       snackBarTheme: SnackBarThemeData(
@@ -166,8 +200,12 @@ abstract class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
         ),
-        titleTextStyle: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
-        contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: colors.textSecondary),
+        titleTextStyle: AppTextStyles.titleLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        contentTextStyle: AppTextStyles.bodyMedium.copyWith(
+          color: colors.textSecondary,
+        ),
       ),
     );
   }
@@ -197,17 +235,39 @@ abstract class AppTheme {
       ),
       fontFamily: 'DMSans',
       textTheme: TextTheme(
-        displayLarge: AppTextStyles.displayLarge.copyWith(color: colors.textPrimary),
-        displayMedium: AppTextStyles.displayMedium.copyWith(color: colors.textPrimary),
-        headlineMedium: AppTextStyles.headlineMedium.copyWith(color: colors.textPrimary),
-        headlineSmall: AppTextStyles.headlineSmall.copyWith(color: colors.textPrimary),
-        titleLarge: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
-        titleMedium: AppTextStyles.titleMedium.copyWith(color: colors.textPrimary),
-        titleSmall: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
-        bodyMedium: AppTextStyles.bodyMedium.copyWith(color: colors.textSecondary),
-        bodySmall: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
-        labelMedium: AppTextStyles.labelMedium.copyWith(color: colors.textSecondary),
-        labelSmall: AppTextStyles.labelSmall.copyWith(color: colors.textSecondary),
+        displayLarge: AppTextStyles.displayLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        displayMedium: AppTextStyles.displayMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        headlineMedium: AppTextStyles.headlineMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        headlineSmall: AppTextStyles.headlineSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleLarge: AppTextStyles.titleLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleMedium: AppTextStyles.titleMedium.copyWith(
+          color: colors.textPrimary,
+        ),
+        titleSmall: AppTextStyles.titleSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        bodyMedium: AppTextStyles.bodyMedium.copyWith(
+          color: colors.textSecondary,
+        ),
+        bodySmall: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
+        labelMedium: AppTextStyles.labelMedium.copyWith(
+          color: colors.textSecondary,
+        ),
+        labelSmall: AppTextStyles.labelSmall.copyWith(
+          color: colors.textSecondary,
+        ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.inkVoid,
@@ -219,7 +279,9 @@ abstract class AppTheme {
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
         ),
-        titleTextStyle: AppTextStyles.headlineMedium.copyWith(color: colors.textPrimary),
+        titleTextStyle: AppTextStyles.headlineMedium.copyWith(
+          color: colors.textPrimary,
+        ),
         centerTitle: false,
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -297,7 +359,9 @@ abstract class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: colors.inkPanel,
-        labelStyle: AppTextStyles.labelSmall.copyWith(color: colors.textPrimary),
+        labelStyle: AppTextStyles.labelSmall.copyWith(
+          color: colors.textPrimary,
+        ),
         side: BorderSide(
           color: colors.inkBorder,
           width: AppDimensions.borderThin,
@@ -312,9 +376,15 @@ abstract class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
         ),
-        titleTextStyle: AppTextStyles.titleSmall.copyWith(color: colors.textPrimary),
-        subtitleTextStyle: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
-        leadingAndTrailingTextStyle: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+        titleTextStyle: AppTextStyles.titleSmall.copyWith(
+          color: colors.textPrimary,
+        ),
+        subtitleTextStyle: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
+        leadingAndTrailingTextStyle: AppTextStyles.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
         iconColor: colors.textSecondary,
       ),
       snackBarTheme: SnackBarThemeData(
@@ -332,8 +402,12 @@ abstract class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
         ),
-        titleTextStyle: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
-        contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: colors.textSecondary),
+        titleTextStyle: AppTextStyles.titleLarge.copyWith(
+          color: colors.textPrimary,
+        ),
+        contentTextStyle: AppTextStyles.bodyMedium.copyWith(
+          color: colors.textSecondary,
+        ),
       ),
     );
   }

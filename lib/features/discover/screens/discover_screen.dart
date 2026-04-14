@@ -136,12 +136,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   }
 
   void _navigateToDetails(MangaItem manga) {
-    // Defer navigation to avoid Navigator lock assertion
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.push('/details/${manga.mangaDexId}');
-      }
-    });
+    if (mounted) {
+      context.push('/details/${manga.mangaDexId}');
+    }
   }
 
   Future<void> _addToLibrary(MangaItem manga) async {
@@ -548,10 +545,11 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
 
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.space16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.space16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title with gold border
@@ -683,8 +681,9 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           const SizedBox(height: AppDimensions.space8),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// Custom filter chip

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:storysync/core/network/dio_client.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
@@ -137,25 +138,25 @@ class MangaDexService {
   /// Returns the total number of chapters if available.
   Future<int?> getChapterCount(String mangaDexId) async {
     try {
-      print('Fetching chapter count for manga: $mangaDexId');
+      debugPrint('Fetching chapter count for manga: $mangaDexId');
       // Don't filter by language to get total chapter count regardless of translation
       final response = await _dio.get('/manga/$mangaDexId/aggregate');
 
       if (response.statusCode != 200) {
-        print(
+        debugPrint(
           'Chapter count fetch failed with status ${response.statusCode} for $mangaDexId',
         );
         return null;
       }
 
       final data = response.data as Map<String, dynamic>;
-      print('Aggregate response data keys: ${data.keys}');
+      debugPrint('Aggregate response data keys: ${data.keys}');
 
       final volumes = data['volumes'] as Map<String, dynamic>? ?? {};
-      print('Found ${volumes.length} volumes for manga $mangaDexId');
+      debugPrint('Found ${volumes.length} volumes for manga $mangaDexId');
 
       if (volumes.isEmpty) {
-        print('No volumes found in aggregate data for manga $mangaDexId');
+        debugPrint('No volumes found in aggregate data for manga $mangaDexId');
         return null;
       }
 
@@ -169,25 +170,25 @@ class MangaDexService {
           final volumeChapters =
               volumeData['chapters'] as Map<String, dynamic>? ?? {};
           if (volumeChapters.isNotEmpty) {
-            print('  Volume $volumeKey has ${volumeChapters.length} chapters');
+            debugPrint('  Volume $volumeKey has ${volumeChapters.length} chapters');
           }
           chapters.addAll(volumeChapters.keys);
         }
       }
 
       if (chapters.isEmpty) {
-        print('No chapters found in any volume for manga $mangaDexId');
+        debugPrint('No chapters found in any volume for manga $mangaDexId');
         return null;
       }
 
-      print(
+      debugPrint(
         'Successfully fetched ${chapters.length} total unique chapters for manga $mangaDexId',
       );
       return chapters.length;
     } catch (e, stackTrace) {
       // Log detailed error information
-      print('Error fetching chapter count for $mangaDexId: $e');
-      print('Stack trace: $stackTrace');
+      debugPrint('Error fetching chapter count for $mangaDexId: $e');
+      debugPrint('Stack trace: $stackTrace');
       return null;
     }
   }

@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:storysync/core/providers/shared_prefs_provider.dart';
 import 'package:storysync/core/providers/theme_provider.dart';
 import 'package:storysync/core/router/app_router.dart';
-import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: StorySyncApp()));
+  
+  final sharedPreferences = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: const StorySyncApp(),
+    ),
+  );
 }
 
 class StorySyncApp extends ConsumerWidget {
@@ -17,6 +28,7 @@ class StorySyncApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
+    final isFirstRun = ref.watch(isFirstRunProvider);
 
     return MaterialApp.router(
       title: 'StorySync',
@@ -28,7 +40,7 @@ class StorySyncApp extends ConsumerWidget {
       themeMode: themeMode,
 
       // Router configuration
-      routerConfig: AppRouter.router,
+      routerConfig: AppRouter.createRouter(isFirstRun),
 
       // Dynamically set system UI overlay style based on resolved brightness
       builder: (context, child) {

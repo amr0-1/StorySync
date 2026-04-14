@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:storysync/features/auth/screens/login_screen.dart';
+import 'package:storysync/features/auth/screens/welcome_screen.dart';
 import 'package:storysync/features/details/screens/details_screen.dart';
 import 'package:storysync/features/discover/screens/discover_screen.dart';
 import 'package:storysync/features/library/screens/library_screen.dart';
@@ -11,12 +11,16 @@ import 'package:storysync/features/shell/screens/app_shell.dart';
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-  static final GoRouter router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
-    initialLocation: '/login',
-    routes: [
-      // Login route (outside shell)
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+  static GoRouter createRouter(bool isFirstRun) {
+    return GoRouter(
+      navigatorKey: _rootNavigatorKey,
+      initialLocation: isFirstRun ? '/welcome' : '/library',
+      routes: [
+        // Welcome route (outside shell)
+        GoRoute(
+          path: '/welcome',
+          builder: (context, state) => const WelcomeScreen(),
+        ),
 
       // Main app shell with tab navigation
       StatefulShellRoute.indexedStack(
@@ -100,5 +104,6 @@ class AppRouter {
         },
       ),
     ],
-  );
+    );
+  }
 }

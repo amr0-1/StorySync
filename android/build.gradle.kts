@@ -35,6 +35,7 @@ subprojects {
     tasks.withType(JavaCompile::class.java).configureEach {
         sourceCompatibility = JavaVersion.VERSION_17.toString()
         targetCompatibility = JavaVersion.VERSION_17.toString()
+        options.compilerArgs.addAll(listOf("-Xlint:-options"))
     }
 }
 

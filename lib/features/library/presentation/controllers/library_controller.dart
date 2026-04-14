@@ -81,18 +81,65 @@ class LibraryController extends _$LibraryController {
     int successCount = 0;
 
     for (final manga in allManga) {
+      if (manga.source == 'manual') {
+        // Skip manually added items entirely, they don't have a MangaDex link
+        continue;
+      }
+
       try {
         // Fetch fresh data from MangaDex
         final freshData = await mangaDexService.getMangaDetails(
           manga.mangaDexId,
         );
 
-        // Preserve user's tracking data, only update metadata
-        manga.title = freshData.title;
-        manga.author = freshData.author;
-        manga.coverUrl = freshData.coverUrl;
-        manga.synopsis = freshData.synopsis;
-        manga.totalChapters = freshData.totalChapters ?? manga.totalChapters;
+        if (manga.hasCustomMetadata) {
+          // Check what was changed compared to the newly fetched API data
+          bool isTitleChanged = manga.title != freshData.title;
+          bool isAuthorChanged =
+              manga.author != freshData.author &&
+              manga.author != null &&
+              manga.author!.isNotEmpty;
+          bool isCoverChanged =
+              manga.coverUrl != freshData.coverUrl &&
+              manga.coverUrl != null &&
+              manga.coverUrl!.isNotEmpty;
+          bool isSynopsisChanged =
+              manga.synopsis != freshData.synopsis &&
+              manga.synopsis != null &&
+              manga.synopsis!.isNotEmpty;
+
+          // If nothing is as it was fetched from the API, don't touch anything at all (except total chapters count)
+          if (isTitleChanged &&
+              isAuthorChanged &&
+              isCoverChanged &&
+              isSynopsisChanged) {
+            manga.totalChapters =
+                freshData.totalChapters ?? manga.totalChapters;
+          } else {
+            // Keep the changed things as they are, but update the things that haven't been manually changed
+            if (!isTitleChanged) {
+              manga.title = freshData.title;
+            }
+            if (!isAuthorChanged) {
+              manga.author = freshData.author;
+            }
+            if (!isCoverChanged) {
+              manga.coverUrl = freshData.coverUrl;
+            }
+            if (!isSynopsisChanged) {
+              manga.synopsis = freshData.synopsis;
+            }
+            manga.totalChapters =
+                freshData.totalChapters ?? manga.totalChapters;
+          }
+        } else {
+          // Preserve user's tracking data, update full metadata
+          manga.title = freshData.title;
+          manga.author = freshData.author;
+          manga.coverUrl = freshData.coverUrl;
+          manga.synopsis = freshData.synopsis;
+          manga.totalChapters = freshData.totalChapters ?? manga.totalChapters;
+        }
 
         // Save updated manga
         await _isarService.saveManga(manga);

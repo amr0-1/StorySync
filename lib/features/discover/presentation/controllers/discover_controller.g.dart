@@ -7,7 +7,7 @@ part of 'discover_controller.dart';
 // **************************************************************************
 
 String _$discoverControllerHash() =>
-    r'99244dec2d109a4b90610731bf2f4718af22015d';
+    r'8b93383c553cd9da3adc25bb358eb47385b45fcc';
 
 /// Controller for the Discover/Search feature.
 ///

@@ -50,6 +50,11 @@ dependencies:
   # Routing
   go_router: ^17.2.0
 
+  # Utilities
+  shared_preferences: ^2.2.3
+  file_picker: ^8.1.2
+  uuid: ^4.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

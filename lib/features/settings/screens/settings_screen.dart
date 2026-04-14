@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:storysync/core/database/isar_service.dart';
+import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/providers/theme_provider.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
@@ -76,18 +81,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: AppDimensions.space24),
 
-          // Account section
-          _buildSectionLabel(colors, 'ACCOUNT'),
-          const SizedBox(height: AppDimensions.space12),
-          _buildSettingsTile(
-            colors: colors,
-            icon: Icons.logout_rounded,
-            iconColor: colors.statusDropped,
-            title: 'Sign Out',
-            titleColor: colors.statusDropped,
-            subtitle: 'Return to login screen',
-            onTap: _handleSignOut,
-          ),
           const SizedBox(height: AppDimensions.space32),
 
           // App info
@@ -213,14 +206,101 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _handleExport() {
-    // TODO: Implement actual export functionality
-    VoidInkSnackbar.showInfo(context, 'Export started...');
+  Future<void> _handleExport() async {
+    try {
+      final isarService = ref.read(isarServiceProvider);
+      final allManga = await isarService.getAllManga();
+
+      final List<Map<String, dynamic>> jsonData = allManga
+          .map((e) => e.toJson())
+          .toList();
+      final String jsonString = jsonEncode(jsonData);
+
+      final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString));
+
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save your library backup',
+        fileName: 'storysync_library.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
+
+      if (outputFile != null) {
+        // Only write manually if it's not Android, iOS, or Web where file_picker handles writing the bytes
+        try {
+          if (!Platform.isAndroid && !Platform.isIOS) {
+            final file = File(outputFile);
+            await file.writeAsString(jsonString);
+          }
+        } catch (e) {
+          // Platform.isAndroid can throw on Web, so we ignore it if it happens
+        }
+
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              VoidInkSnackbar.showSuccess(
+                context,
+                'Library exported successfully!',
+              );
+            }
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) VoidInkSnackbar.showError(context, 'Export failed: $e');
+        });
+      }
+    }
   }
 
-  void _handleImport() {
-    // TODO: Implement actual import functionality
-    VoidInkSnackbar.showInfo(context, 'Select a backup file to import');
+  Future<void> _handleImport() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final String jsonString = await file.readAsString();
+        final List<dynamic> decoded = jsonDecode(jsonString);
+
+        final isarService = ref.read(isarServiceProvider);
+
+        int importedCount = 0;
+        for (var map in decoded) {
+          try {
+            final mangaItem = MangaItem.fromJson(map);
+            // Check if exists to preserve ID if necessary (upsert handles it generally via mangaDexId index)
+            await isarService.saveManga(mangaItem);
+            importedCount++;
+          } catch (e) {
+            continue; // Skip malformed items
+          }
+        }
+
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              VoidInkSnackbar.showSuccess(
+                context,
+                'Imported $importedCount titles successfully!',
+              );
+            }
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) VoidInkSnackbar.showError(context, 'Import failed: $e');
+        });
+      }
+    }
   }
 
   void _handleClearCache() {
@@ -261,64 +341,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onPressed: () {
                 Navigator.pop(dialogContext);
                 // TODO: Clear actual image cache
-                VoidInkSnackbar.showSuccess(context, 'Image cache cleared');
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    VoidInkSnackbar.showSuccess(context, 'Image cache cleared');
+                  }
+                });
               },
               child: Text(
                 'Clear',
                 style: AppTextStyles.titleSmall.copyWith(
                   color: dialogColors.statusOnHold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _handleSignOut() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final dialogColors = Theme.of(
-          dialogContext,
-        ).extension<VoidInkColors>()!;
-        return AlertDialog(
-          backgroundColor: dialogColors.inkPanel,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-          ),
-          title: Text(
-            'Sign Out?',
-            style: AppTextStyles.titleLarge.copyWith(
-              color: dialogColors.textPrimary,
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to sign out? Your local library data will be preserved.',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: dialogColors.textSecondary,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.titleSmall.copyWith(
-                  color: dialogColors.textSecondary,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                context.go('/login');
-              },
-              child: Text(
-                'Sign Out',
-                style: AppTextStyles.titleSmall.copyWith(
-                  color: dialogColors.statusDropped,
                 ),
               ),
             ),

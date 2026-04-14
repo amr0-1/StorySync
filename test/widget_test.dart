@@ -6,7 +6,9 @@ void main() {
   testWidgets('App loads and displays Library tab', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MTrackApp()));
+    await tester.pumpWidget(
+      const ProviderScope(child: StorySyncApp()),
+    );
 
     // Wait for the app to settle
     await tester.pumpAndSettle();

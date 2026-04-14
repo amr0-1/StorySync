@@ -188,6 +188,58 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     onChapterChanged: (chapter) =>
                         _updateChapter(manga, chapter),
                   ),
+
+                if (_isInLibrary) ...[
+                  const SizedBox(height: AppDimensions.space24),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        // Confirm deletion
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: colors.inkSurface,
+                            title: Text(
+                              'Remove from Library',
+                              style: TextStyle(color: colors.textPrimary),
+                            ),
+                            content: Text(
+                              'Are you sure you want to remove "${manga.title}" from your library?',
+                              style: TextStyle(color: colors.textSecondary),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(color: colors.textHint),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  _removeFromLibrary(manga);
+                                },
+                                child: const Text(
+                                  'Remove',
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                      ),
+                      label: const Text(
+                        'Remove from Library',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppDimensions.space32),
               ]),
             ),
@@ -207,6 +259,33 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       VoidInkSnackbar.showSuccess(context, 'Added to Library');
       // Reload to get the library version
       _loadManga();
+    }
+  }
+
+  Future<void> _removeFromLibrary(MangaItem manga) async {
+    final removed = await ref
+        .read(libraryControllerProvider.notifier)
+        .removeManga(manga.mangaDexId);
+
+    if (mounted) {
+      if (removed) {
+        setState(() {
+          _isInLibrary = false;
+        });
+        Navigator.of(context).pop();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            VoidInkSnackbar.showSuccess(context, 'Removed from Library');
+          }
+        });
+      } else {
+        Navigator.of(context).pop();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            VoidInkSnackbar.showError(context, 'Failed to remove from library');
+          }
+        });
+      }
     }
   }
 
@@ -253,7 +332,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
       if (mounted) {
         if (success) {
-          VoidInkSnackbar.showSuccess(context, '+1 Chapter Logged');
           _refreshMangaData();
         } else {
           VoidInkSnackbar.showError(context, 'Already at max chapters');
@@ -267,7 +345,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
       if (mounted) {
         if (success) {
-          VoidInkSnackbar.showSuccess(context, '-1 Chapter');
           _refreshMangaData();
         } else {
           VoidInkSnackbar.showError(context, 'Already at 0 chapters');
