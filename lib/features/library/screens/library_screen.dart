@@ -7,6 +7,7 @@ import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
+import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/features/library/widgets/manga_grid_card.dart';
 import 'package:storysync/features/library/widgets/manga_list_tile.dart';
 import 'package:storysync/features/library/presentation/widgets/manual_add_dialog.dart';
@@ -255,7 +256,7 @@ class _LibraryContentWrapper extends ConsumerWidget {
               color: colors.goldSpark,
               backgroundColor: colors.inkSurface,
               onRefresh: () async {
-                // Invalidate the provider to trigger a refresh
+                StorySyncHaptics.mediumTap();
                 ref.invalidate(libraryByStatusProvider(status));
               },
               child: isGrid

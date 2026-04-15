@@ -11,6 +11,8 @@ import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/chapter_stepper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
+import 'package:storysync/features/details/presentation/controllers/palette_controller.dart';
+import 'package:storysync/core/utils/haptic_util.dart';
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -140,6 +142,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
     final manga = _manga!;
 
+    final String paletteKey = '${manga.mangaDexId}|${manga.coverUrl}';
+    final AsyncValue<Color?> paletteColor = ref.watch(coverPaletteProvider(paletteKey));
+
     return Scaffold(
       backgroundColor: colors.inkVoid,
       body: CustomScrollView(
@@ -149,6 +154,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             child: _HeroHeader(
               manga: manga,
               colors: colors,
+              paletteColor: paletteColor,
               onEdit: () => _showEditDialog(manga),
             ),
           ),
@@ -386,11 +392,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 class _HeroHeader extends StatelessWidget {
   final MangaItem manga;
   final VoidInkColors colors;
+  final AsyncValue<Color?> paletteColor;
   final VoidCallback onEdit;
 
   const _HeroHeader({
     required this.manga,
     required this.colors,
+    required this.paletteColor,
     required this.onEdit,
   });
 
@@ -422,6 +430,28 @@ class _HeroHeader extends StatelessWidget {
             )
           else
             Container(color: colors.inkPanel),
+
+          // Palette tint overlay
+          paletteColor.when(
+            data: (color) {
+              if (color == null) return const SizedBox.shrink();
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      color.withValues(alpha: 0.10),
+                      color.withValues(alpha: 0.14),
+                    ],
+                  ),
+                ),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
 
           // Bottom gradient
           Align(
@@ -678,7 +708,10 @@ class _AddToLibraryButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: ElevatedButton.icon(
-        onPressed: onPressed,
+        onPressed: () {
+                  StorySyncHaptics.mediumTap();
+                  onPressed();
+                },
         icon: Icon(Icons.add_rounded, color: colors.inkVoid),
         label: Text(
           'Add to Library',
@@ -812,6 +845,7 @@ class _StatusDropdown extends StatelessWidget {
         }).toList(),
         onChanged: (value) {
           if (value != null) {
+            StorySyncHaptics.selection();
             onChanged(value);
           }
         },

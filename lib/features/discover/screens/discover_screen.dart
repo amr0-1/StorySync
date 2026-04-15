@@ -12,6 +12,7 @@ import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 import 'package:storysync/shared/widgets/chapter_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
+import 'package:storysync/core/utils/haptic_util.dart';
 
 /// Search and discover screen for finding new manga
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -91,6 +92,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       _selectedDemographics.isNotEmpty || _selectedStatuses.isNotEmpty;
 
   Future<void> _onRefresh() async {
+    StorySyncHaptics.mediumTap();
     if (_searchController.text.isNotEmpty) {
       await ref
           .read(discoverControllerProvider.notifier)
@@ -834,7 +836,10 @@ class _DiscoverResultTile extends StatelessWidget {
                     Icons.add_circle_outline_rounded,
                     color: colors.goldSpark,
                   ),
-                  onPressed: onAdd,
+                  onPressed: () {
+                    StorySyncHaptics.mediumTap();
+                    onAdd();
+                  },
                 ),
               ],
             ),

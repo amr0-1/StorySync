@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
@@ -100,7 +101,10 @@ class _MangaGridCardState extends State<MangaGridCard> {
                       onTapUp: (_) => setState(() => _isButtonPressed = false),
                       onTapCancel: () =>
                           setState(() => _isButtonPressed = false),
-                      onTap: widget.onQuickIncrement,
+                      onTap: () {
+                        StorySyncHaptics.lightTap();
+                        widget.onQuickIncrement();
+                      },
                       child: AnimatedScale(
                         scale: _isButtonPressed ? 0.9 : 1.0,
                         duration: const Duration(milliseconds: 100),

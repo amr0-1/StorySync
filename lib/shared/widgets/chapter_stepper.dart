@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:storysync/core/theme/app_colors.dart';
+import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 
@@ -183,7 +184,10 @@ class _StepperButtonState extends State<_StepperButton> {
       onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
       onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
       onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
-      onTap: widget.onTap,
+      onTap: () {
+                StorySyncHaptics.lightTap();
+                widget.onTap?.call();
+              },
       child: AnimatedScale(
         scale: _isPressed ? 0.92 : 1.0,
         duration: const Duration(milliseconds: 100),
