@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 
 /// Dialog for editing manga information.
@@ -52,8 +54,61 @@ class _EditMangaDialogState extends State<EditMangaDialog> {
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<bool> _validateImageUrl(String? url) async {
+    if (url == null || url.trim().isEmpty) {
+      return true;
+    }
+
+    setState(() {
+      // _isValidatingImage = true;
+    });
+
+    try {
+      final dio = Dio();
+      final response = await dio.head(
+        url.trim(),
+        options: Options(
+          validateStatus: (status) => status != null && status < 400,
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
+
+      final isValid =
+          response.statusCode == 200 &&
+          (response.headers.value('content-type')?.contains('image') ?? false);
+
+      setState(() {
+        // _isValidatingImage = false;
+      });
+
+      return isValid;
+    } catch (e) {
+      setState(() {
+        // _isValidatingImage = false;
+      });
+      return false;
+    }
+  }
+
+  void _handleSave() async {
     if (_formKey.currentState?.validate() ?? false) {
+      final coverUrl = _coverUrlController.text.trim();
+
+      if (coverUrl.isNotEmpty) {
+        final isValid = await _validateImageUrl(coverUrl);
+
+        if (!mounted) return;
+
+        if (!isValid) {
+          VoidInkSnackbar.showError(
+            context,
+            'Unable to fetch image from the provided link.',
+          );
+          return;
+        }
+      }
+
+      if (!mounted) return;
       // Create updated manga item
       final updatedManga = MangaItem.create(
         mangaDexId: widget.manga.mangaDexId,

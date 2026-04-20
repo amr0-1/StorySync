@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
@@ -114,14 +116,15 @@ class MangaListTile extends StatelessWidget {
 
   Widget _buildThumbnail(VoidInkColors colors) {
     if (manga.coverUrl != null && manga.coverUrl!.isNotEmpty) {
-      return Image.network(
-        manga.coverUrl!,
+      return CachedNetworkImage(
+        imageUrl: manga.coverUrl!,
         fit: BoxFit.cover,
-        cacheWidth: (AppDimensions.listThumbWidth * 2).toInt(),
-        cacheHeight: (AppDimensions.listThumbHeight * 2).toInt(),
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colors),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
+        cacheManager: CustomCacheManager.instance,
+        memCacheWidth: (AppDimensions.listThumbWidth * 2).toInt(),
+        memCacheHeight: (AppDimensions.listThumbHeight * 2).toInt(),
+        errorWidget: (context, url, error) => _buildPlaceholder(colors),
+        progressIndicatorBuilder: (context, url, progress) {
+          if (progress.progress == null) return _buildPlaceholder(colors);
           return _buildPlaceholder(colors, showLoading: true);
         },
       );

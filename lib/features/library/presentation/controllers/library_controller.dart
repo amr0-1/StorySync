@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:storysync/core/database/isar_service.dart';
+import 'package:storysync/core/native/widget_service.dart';
 import 'package:storysync/features/discover/data/services/mangadex_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 
@@ -12,6 +13,7 @@ part 'library_controller.g.dart';
 @riverpod
 class LibraryController extends _$LibraryController {
   IsarService get _isarService => ref.read(isarServiceProvider);
+  WidgetService get _widgetService => ref.read(widgetServiceProvider);
 
   @override
   Stream<List<MangaItem>> build() {
@@ -36,8 +38,49 @@ class LibraryController extends _$LibraryController {
   /// Increments the chapter progress of a manga by 1.
   ///
   /// Returns `true` if successful, `false` if manga not found or at max.
-  Future<bool> incrementChapter(String mangaDexId) async {
-    return _isarService.incrementChapter(mangaDexId);
+  Future<bool> incrementChapter(
+    String mangaDexId, {
+    bool logToHeatmap = true,
+  }) async {
+    // Check if we should warn about high chapter count
+    if (logToHeatmap) {
+      final todayCount = await _isarService.getTodayChapterCount(mangaDexId);
+      if (todayCount >= 50) {
+        return false; // Signal that we need user confirmation
+      }
+    }
+
+    final result = await _isarService.incrementChapter(mangaDexId);
+    if (result) {
+      if (logToHeatmap) {
+        // Fire and forget logging
+        _isarService.logChapterRead(mangaDexId).ignore();
+      }
+      // Fire and forget widget update to prevent blocking UI
+      _widgetService.updateWidgetData().ignore();
+    }
+    return result;
+  }
+
+  /// Handles the 50+ chapter alert and saves based on user choice.
+  Future<bool> confirmAndIncrementChapter(
+    String mangaDexId,
+    bool isPastReading,
+  ) async {
+    final result = await _isarService.incrementChapter(mangaDexId);
+    if (result) {
+      // If "Past Reading", don't log to today's heatmap
+      if (!isPastReading) {
+        _isarService.logChapterRead(mangaDexId).ignore();
+      }
+      _widgetService.updateWidgetData().ignore();
+    }
+    return result;
+  }
+
+  /// Checks today's chapter count for a manga.
+  Future<int> getTodayChapterCount(String mangaDexId) async {
+    return _isarService.getTodayChapterCount(mangaDexId);
   }
 
   /// Decrements the chapter progress of a manga by 1.

@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:storysync/features/discover/presentation/controllers/discover_controller.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
@@ -143,7 +145,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     final manga = _manga!;
 
     final String paletteKey = '${manga.mangaDexId}|${manga.coverUrl}';
-    final AsyncValue<Color?> paletteColor = ref.watch(coverPaletteProvider(paletteKey));
+    final AsyncValue<Color?> paletteColor = ref.watch(
+      coverPaletteProvider(paletteKey),
+    );
 
     return Scaffold(
       backgroundColor: colors.inkVoid,
@@ -328,20 +332,74 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   }
 
   Future<void> _updateChapter(MangaItem manga, int newChapter) async {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     final currentChapter = manga.chapterProgress;
 
     if (newChapter > currentChapter) {
       // Incrementing
       final success = await ref
           .read(libraryControllerProvider.notifier)
-          .incrementChapter(manga.mangaDexId);
+          .incrementChapter(manga.mangaDexId, logToHeatmap: true);
 
-      if (mounted) {
-        if (success) {
-          _refreshMangaData();
+      if (!success && mounted) {
+        final todayCount = await ref
+            .read(libraryControllerProvider.notifier)
+            .getTodayChapterCount(manga.mangaDexId);
+
+        if (!mounted) return;
+
+        if (todayCount >= 50) {
+          final isPastReading = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: colors.inkSurface,
+              title: Text(
+                'Whoa, that\'s a lot!',
+                style: AppTextStyles.titleLarge.copyWith(
+                  color: colors.textPrimary,
+                ),
+              ),
+              content: Text(
+                'Are you adding past reading history, or is this your current pace?',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(
+                    'Past Reading',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(
+                    'Current Pace',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: colors.goldSpark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          if (isPastReading != null && mounted) {
+            await ref
+                .read(libraryControllerProvider.notifier)
+                .confirmAndIncrementChapter(manga.mangaDexId, isPastReading);
+            _refreshMangaData();
+          }
         } else {
           VoidInkSnackbar.showError(context, 'Already at max chapters');
         }
+      } else if (success && mounted) {
+        _refreshMangaData();
       }
     } else if (newChapter < currentChapter) {
       // Decrementing
@@ -420,10 +478,11 @@ class _HeroHeader extends StatelessWidget {
                   Color(0x99000000),
                   BlendMode.darken,
                 ),
-                child: Image.network(
-                  manga.coverUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: manga.coverUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
+                  cacheManager: CustomCacheManager.instance,
+                  errorWidget: (context, url, error) =>
                       Container(color: colors.inkPanel),
                 ),
               ),
@@ -450,7 +509,7 @@ class _HeroHeader extends StatelessWidget {
               );
             },
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
 
           // Bottom gradient
@@ -490,13 +549,16 @@ class _HeroHeader extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                   child: manga.coverUrl != null
-                      ? Image.network(
-                          manga.coverUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: manga.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                          cacheManager: CustomCacheManager.instance,
+                          errorWidget: (context, url, error) =>
                               _CoverPlaceholder(colors: colors),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
+                          progressIndicatorBuilder: (context, url, progress) {
+                            if (progress.progress == null) {
+                              return _CoverPlaceholder(colors: colors);
+                            }
                             return _CoverPlaceholder(
                               colors: colors,
                               showLoading: true,
@@ -709,9 +771,9 @@ class _AddToLibraryButton extends StatelessWidget {
       height: 48,
       child: ElevatedButton.icon(
         onPressed: () {
-                  StorySyncHaptics.mediumTap();
-                  onPressed();
-                },
+          StorySyncHaptics.mediumTap();
+          onPressed();
+        },
         icon: Icon(Icons.add_rounded, color: colors.inkVoid),
         label: Text(
           'Add to Library',

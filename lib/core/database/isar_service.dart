@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
+import 'package:storysync/features/library/data/models/reading_log.dart';
 
 /// Provider for the IsarService singleton instance.
 ///
@@ -40,7 +41,7 @@ class IsarService {
 
     final dir = await getApplicationDocumentsDirectory();
     _isar = await Isar.open(
-      [MangaItemSchema],
+      [MangaItemSchema, ReadingLogSchema],
       directory: dir.path,
       name: 'storysync_db',
     );
@@ -162,16 +163,24 @@ class IsarService {
     return true;
   }
 
-  /// Updates the reading status of a manga.
-  ///
-  /// Returns `true` if successful, `false` if manga not found.
-  Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
+/// Updates the reading status of a manga.
+///
+/// Returns `true` if successful, `false` if manga not found.
+///
+/// When status is set to [ReadingStatus.completed], automatically sets
+/// [chapterProgress] to [totalChapters] if [totalChapters] is known.
+Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
     final isar = await _db;
     final manga = await getMangaByMangaDexId(mangaDexId);
 
     if (manga == null) return false;
 
     manga.readingStatus = status;
+    
+    if (status == ReadingStatus.completed && manga.totalChapters != null) {
+      manga.chapterProgress = manga.totalChapters!;
+    }
+    
     manga.lastUpdated = DateTime.now();
 
     await isar.writeTxn(() async {
@@ -236,6 +245,96 @@ class IsarService {
         .readingStatusEqualTo(status)
         .sortByLastUpdatedDesc()
         .watch(fireImmediately: true);
+  }
+
+  // ============================================================
+  // Reading Log Operations
+  // ============================================================
+
+  /// Logs a chapter read for today.
+  Future<void> logChapterRead(String mangaDexId, {bool isImport = false}) async {
+    final isar = await _db;
+    final today = DateTime.now();
+    final normalizedDate = DateTime(today.year, today.month, today.day);
+
+    final existingLogs = await isar.readingLogs
+        .filter()
+        .dateEqualTo(normalizedDate)
+        .mangaDexIdEqualTo(mangaDexId)
+        .findFirst();
+
+    if (existingLogs != null) {
+      existingLogs.chaptersRead++;
+      await isar.writeTxn(() async {
+        await isar.readingLogs.put(existingLogs);
+      });
+    } else {
+      final newLog = ReadingLog.create(
+        date: normalizedDate,
+        mangaDexId: mangaDexId,
+        chaptersRead: 1,
+      );
+      await isar.writeTxn(() async {
+        await isar.readingLogs.put(newLog);
+      });
+    }
+  }
+
+  /// Gets today's chapter count for a specific manga.
+  Future<int> getTodayChapterCount(String mangaDexId) async {
+    final isar = await _db;
+    final today = DateTime.now();
+    final normalizedDate = DateTime(today.year, today.month, today.day);
+
+    final log = await isar.readingLogs
+        .filter()
+        .dateEqualTo(normalizedDate)
+        .mangaDexIdEqualTo(mangaDexId)
+        .findFirst();
+
+    return log?.chaptersRead ?? 0;
+  }
+
+  /// Gets all reading logs for a date range.
+  Future<List<ReadingLog>> getReadingLogsInRange(DateTime start, DateTime end) async {
+    final isar = await _db;
+    final normalizedStart = DateTime(start.year, start.month, start.day);
+    final normalizedEnd = DateTime(end.year, end.month, end.day);
+
+    return isar.readingLogs
+        .filter()
+        .dateBetween(normalizedStart, normalizedEnd)
+        .findAll();
+  }
+
+  /// Gets all reading logs.
+  Future<List<ReadingLog>> getAllReadingLogs() async {
+    final isar = await _db;
+    return isar.readingLogs.where().findAll();
+  }
+
+  /// Saves a reading log (used during import).
+  Future<void> saveReadingLog(ReadingLog log) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      await isar.readingLogs.put(log);
+    });
+  }
+
+  /// Saves multiple reading logs (used during import).
+  Future<void> saveReadingLogs(List<ReadingLog> logs) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      await isar.readingLogs.putAll(logs);
+    });
+  }
+
+  /// Clears all reading logs.
+  Future<void> clearReadingLogs() async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      await isar.readingLogs.clear();
+    });
   }
 
   /// Closes the database connection.

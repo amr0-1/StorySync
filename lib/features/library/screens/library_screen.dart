@@ -293,12 +293,65 @@ class _LibraryContentWrapper extends ConsumerWidget {
     WidgetRef ref,
     MangaItem manga,
   ) async {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
     final success = await ref
         .read(libraryControllerProvider.notifier)
-        .incrementChapter(manga.mangaDexId);
+        .incrementChapter(manga.mangaDexId, logToHeatmap: true);
 
-    if (context.mounted) {
-      if (!success) {
+    if (!success && context.mounted) {
+      final todayCount = await ref
+          .read(libraryControllerProvider.notifier)
+          .getTodayChapterCount(manga.mangaDexId);
+
+      if (!context.mounted) return;
+
+      if (todayCount >= 50) {
+        final isPastReading = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: colors.inkSurface,
+            title: Text(
+              'Whoa, that\'s a lot!',
+              style: AppTextStyles.titleLarge.copyWith(
+                color: colors.textPrimary,
+              ),
+            ),
+            content: Text(
+              'Are you adding past reading history, or is this your current pace?',
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(
+                  'Past Reading',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(
+                  'Current Pace',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: colors.goldSpark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (isPastReading != null && context.mounted) {
+          await ref
+              .read(libraryControllerProvider.notifier)
+              .confirmAndIncrementChapter(manga.mangaDexId, isPastReading);
+        }
+      } else {
         VoidInkSnackbar.showError(context, 'Already at max chapters');
       }
     }

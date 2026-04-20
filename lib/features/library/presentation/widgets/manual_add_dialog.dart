@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,6 +21,7 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
   final _titleController = TextEditingController();
   final _authorController = TextEditingController();
   final _synopsisController = TextEditingController();
+  final _coverUrlController = TextEditingController();
   final _chaptersController = TextEditingController();
 
   ReadingStatus _status = ReadingStatus.reading;
@@ -28,21 +31,89 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
     _titleController.dispose();
     _authorController.dispose();
     _synopsisController.dispose();
+    _coverUrlController.dispose();
     _chaptersController.dispose();
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<bool> _validateImageUrl(String? url) async {
+    if (url == null || url.trim().isEmpty) {
+      return true;
+    }
+
+    setState(() {
+      // _isValidatingImage = true;
+      // // _imageValidationError = null;
+    });
+
+    try {
+      final dio = Dio();
+      final response = await dio.head(
+        url.trim(),
+        options: Options(
+          validateStatus: (status) => status != null && status < 400,
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
+
+      final isValid =
+          response.statusCode == 200 &&
+          (response.headers.value('content-type')?.contains('image') ?? false);
+
+      setState(() {
+        // _isValidatingImage = false;
+        if (!isValid) {
+          // _imageValidationError =
+          'Unable to fetch image from the provided link.';
+        }
+      });
+
+      return isValid;
+    } catch (e) {
+      setState(() {
+        // _isValidatingImage = false;
+        // ERROR STRING
+      });
+      return false;
+    }
+  }
+
+  void _handleSave() async {
     if (_formKey.currentState?.validate() ?? false) {
+      final coverUrl = _coverUrlController.text.trim();
+
+      if (coverUrl.isNotEmpty) {
+        final isValid = await _validateImageUrl(coverUrl);
+
+        if (!mounted) return;
+
+        if (!isValid) {
+          VoidInkSnackbar.showError(
+            context,
+            'Unable to fetch image from the provided link.',
+          );
+          return;
+        }
+      }
+
+      if (!mounted) return;
+
       final String genId = const Uuid().v4();
       final newItem = MangaItem.create(
         mangaDexId: genId,
         title: _titleController.text.trim(),
-        author: _authorController.text.trim().isEmpty ? null : _authorController.text.trim(),
-        synopsis: _synopsisController.text.trim().isEmpty ? null : _synopsisController.text.trim(),
+        author: _authorController.text.trim().isEmpty
+            ? null
+            : _authorController.text.trim(),
+        synopsis: _synopsisController.text.trim().isEmpty
+            ? null
+            : _synopsisController.text.trim(),
+        coverUrl: coverUrl.isEmpty ? null : coverUrl,
         readingStatus: _status,
         chapterProgress: 0,
-        totalChapters: _chaptersController.text.trim().isEmpty ? null : int.tryParse(_chaptersController.text.trim()),
+        totalChapters: _chaptersController.text.trim().isEmpty
+            ? null
+            : int.tryParse(_chaptersController.text.trim()),
         source: 'manual',
         hasCustomMetadata: true,
       );
@@ -60,7 +131,10 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
       backgroundColor: colors.inkVoid,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
-        side: BorderSide(color: colors.inkBorder, width: AppDimensions.borderThin),
+        side: BorderSide(
+          color: colors.inkBorder,
+          width: AppDimensions.borderThin,
+        ),
       ),
       child: SingleChildScrollView(
         child: Padding(
@@ -73,27 +147,37 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.add_circle_outline_rounded, color: colors.goldSpark, size: 20),
+                    Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: colors.goldSpark,
+                      size: 20,
+                    ),
                     const SizedBox(width: AppDimensions.space8),
                     Text(
                       'Manual Add',
-                      style: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
+                      style: AppTextStyles.titleLarge.copyWith(
+                        color: colors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppDimensions.space4),
                 Text(
                   'Add a custom title not found on MangaDex.',
-                  style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.space24),
-                
+
                 _buildTextField(
                   controller: _titleController,
                   label: 'Title',
                   hint: 'Enter manga title',
                   colors: colors,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Title is required'
+                      : null,
                 ),
                 const SizedBox(height: AppDimensions.space16),
 
@@ -114,10 +198,23 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
                 ),
                 const SizedBox(height: AppDimensions.space16),
 
+                _buildTextField(
+                  controller: _coverUrlController,
+                  label: 'Cover Image URL (Optional)',
+                  hint: 'Enter cover image URL',
+                  colors: colors,
+                ),
+                const SizedBox(height: AppDimensions.space16),
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Status', style: AppTextStyles.labelMedium.copyWith(color: colors.textSecondary)),
+                    Text(
+                      'Status',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: AppDimensions.space8),
                     DropdownButtonFormField<ReadingStatus>(
                       initialValue: _status,
@@ -127,22 +224,33 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
                         filled: true,
                         fillColor: colors.inkSurface,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusSM,
+                          ),
                           borderSide: BorderSide(color: colors.inkBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusSM,
+                          ),
                           borderSide: BorderSide(color: colors.inkBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusSM,
+                          ),
                           borderSide: BorderSide(color: colors.goldSpark),
                         ),
                       ),
                       items: ReadingStatus.values.map((s) {
                         return DropdownMenuItem(
                           value: s,
-                          child: Text(s.displayLabel, style: AppTextStyles.bodyMedium.copyWith(color: colors.textPrimary)),
+                          child: Text(
+                            s.displayLabel,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: colors.textPrimary,
+                            ),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -160,7 +268,9 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
                   colors: colors,
                   keyboardType: TextInputType.number,
                   validator: (v) {
-                    if (v != null && v.trim().isNotEmpty && int.tryParse(v.trim()) == null) {
+                    if (v != null &&
+                        v.trim().isNotEmpty &&
+                        int.tryParse(v.trim()) == null) {
                       return 'Must be an integer';
                     }
                     return null;
@@ -173,7 +283,12 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: Text('Cancel', style: AppTextStyles.labelMedium.copyWith(color: colors.textSecondary)),
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: AppDimensions.space12),
                     ElevatedButton(
@@ -182,9 +297,18 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
                         backgroundColor: colors.goldSpark,
                         foregroundColor: colors.inkVoid,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusSM)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusSM,
+                          ),
+                        ),
                       ),
-                      child: Text('Add', style: AppTextStyles.labelMedium.copyWith(color: colors.inkVoid)),
+                      child: Text(
+                        'Add',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: colors.inkVoid,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -208,7 +332,12 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTextStyles.labelMedium.copyWith(color: colors.textSecondary)),
+        Text(
+          label,
+          style: AppTextStyles.labelMedium.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
         const SizedBox(height: AppDimensions.space8),
         TextFormField(
           controller: controller,
@@ -218,24 +347,38 @@ class _ManualAddDialogState extends State<ManualAddDialog> {
           style: AppTextStyles.bodyMedium.copyWith(color: colors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTextStyles.bodyMedium.copyWith(color: colors.textHint),
+            hintStyle: AppTextStyles.bodyMedium.copyWith(
+              color: colors.textHint,
+            ),
             filled: true,
             fillColor: colors.inkSurface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-              borderSide: BorderSide(color: colors.inkBorder, width: AppDimensions.borderThin),
+              borderSide: BorderSide(
+                color: colors.inkBorder,
+                width: AppDimensions.borderThin,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-              borderSide: BorderSide(color: colors.inkBorder, width: AppDimensions.borderThin),
+              borderSide: BorderSide(
+                color: colors.inkBorder,
+                width: AppDimensions.borderThin,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-              borderSide: BorderSide(color: colors.goldSpark, width: AppDimensions.borderMedium),
+              borderSide: BorderSide(
+                color: colors.goldSpark,
+                width: AppDimensions.borderMedium,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-              borderSide: BorderSide(color: colors.statusDropped, width: AppDimensions.borderThin),
+              borderSide: BorderSide(
+                color: colors.statusDropped,
+                width: AppDimensions.borderThin,
+              ),
             ),
           ),
         ),

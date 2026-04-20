@@ -4,8 +4,11 @@ import 'package:palette_generator/palette_generator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// Palette provider
-/// Key format: "<mangaDexId>|<coverUrl>"
-final coverPaletteProvider = FutureProvider.family<Color?, String>((ref, key) async {
+/// Key format: "[mangaDexId]|[coverUrl]"
+final coverPaletteProvider = FutureProvider.family<Color?, String>((
+  ref,
+  key,
+) async {
   final parts = key.split('|');
   final coverUrl = parts.length > 1 ? parts.sublist(1).join('|') : parts.first;
 

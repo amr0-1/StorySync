@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
@@ -172,14 +174,15 @@ class _MangaGridCardState extends State<MangaGridCard> {
 
   Widget _buildCoverImage(VoidInkColors colors) {
     if (widget.manga.coverUrl != null && widget.manga.coverUrl!.isNotEmpty) {
-      return Image.network(
-        widget.manga.coverUrl!,
+      return CachedNetworkImage(
+        imageUrl: widget.manga.coverUrl!,
         fit: BoxFit.cover,
-        cacheWidth: (AppDimensions.gridCardWidth * 2).toInt(),
-        cacheHeight: (AppDimensions.gridCoverHeight * 2).toInt(),
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(colors),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
+        cacheManager: CustomCacheManager.instance,
+        memCacheWidth: (AppDimensions.gridCardWidth * 2).toInt(),
+        memCacheHeight: (AppDimensions.gridCoverHeight * 2).toInt(),
+        errorWidget: (context, url, error) => _buildPlaceholder(colors),
+        progressIndicatorBuilder: (context, url, progress) {
+          if (progress.progress == null) return _buildPlaceholder(colors);
           return _buildPlaceholder(colors, showLoading: true);
         },
       );

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:storysync/features/auth/screens/welcome_screen.dart';
 import 'package:storysync/features/details/screens/details_screen.dart';
 import 'package:storysync/features/discover/screens/discover_screen.dart';
+import 'package:storysync/features/insights/screens/insights_screen.dart';
 import 'package:storysync/features/library/screens/library_screen.dart';
 import 'package:storysync/features/settings/screens/settings_screen.dart';
 import 'package:storysync/features/shell/screens/app_shell.dart';
@@ -35,6 +36,17 @@ class AppRouter {
               GoRoute(
                 path: '/library',
                 builder: (context, state) => const LibraryScreen(),
+              ),
+            ],
+          ),
+
+          // Insights branch
+          StatefulShellBranch(
+            navigatorKey: GlobalKey<NavigatorState>(),
+            routes: [
+              GoRoute(
+                path: '/insights',
+                builder: (context, state) => const InsightsScreen(),
               ),
             ],
           ),

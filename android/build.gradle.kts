@@ -7,15 +7,12 @@ allprojects {
     }
 }
 
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
-rootProject.layout.buildDirectory.value(newBuildDir)
+val newBuildDir = File(rootProject.projectDir, "../build")
+rootProject.layout.buildDirectory.set(newBuildDir)
 
 subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
+    val newSubprojectBuildDir = File(newBuildDir, project.name)
+    project.layout.buildDirectory.set(newSubprojectBuildDir)
 }
 subprojects {
     project.evaluationDependsOn(":app")
@@ -23,6 +20,13 @@ subprojects {
 
 subprojects {
     plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.api.variant.LibraryAndroidComponentsExtension>("androidComponents") {
+            beforeVariants(selector().all()) { variantBuilder ->
+                variantBuilder.enableUnitTest = false
+                variantBuilder.enableAndroidTest = false
+            }
+        }
+        
         extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
             if (namespace == null) {
                 val safeProjectName = project.name.replace(Regex("[^A-Za-z0-9_]"), "_")
