@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
@@ -135,7 +136,7 @@ class _EditMangaDialogState extends State<EditMangaDialog> {
       updatedManga.id = widget.manga.id;
 
       widget.onSave(updatedManga);
-      Navigator.of(context).pop();
+      context.pop();
     }
   }
 
@@ -249,7 +250,7 @@ class _EditMangaDialogState extends State<EditMangaDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => context.pop(),
                       child: Text(
                         'Cancel',
                         style: AppTextStyles.labelMedium.copyWith(

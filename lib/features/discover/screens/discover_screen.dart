@@ -12,6 +12,7 @@ import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 import 'package:storysync/shared/widgets/chapter_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
+import 'package:storysync/shared/widgets/staggered_list_builder.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
 
 /// Search and discover screen for finding new manga
@@ -245,33 +246,40 @@ class _DiscoverContent extends ConsumerWidget {
       return _EmptyState(colors: colors);
     }
 
-    return asyncResults.when(
-      data: (results) {
-        if (results.isEmpty) {
-          return _NoResultsState(colors: colors);
-        }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: asyncResults.when(
+        data: (results) {
+          if (results.isEmpty) {
+            return _NoResultsState(key: const ValueKey('no_results'), colors: colors);
+          }
 
-        return _ResultsList(
-          results: results,
+          return _ResultsList(
+            key: const ValueKey('results'),
+            results: results,
+            colors: colors,
+            onRefresh: onRefresh,
+            onDetails: onDetails,
+            onAdd: onAdd,
+            onEdit: (originalManga, updatedManga) {
+              // Update the manga in the results list
+              ref
+                  .read(discoverControllerProvider.notifier)
+                  .updateManga(originalManga.mangaDexId, updatedManga);
+            },
+          );
+        },
+        loading: () => _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
+        error: (error, stack) => _ErrorState(
+          key: const ValueKey('error'),
+          error: error.toString(),
           colors: colors,
-          onRefresh: onRefresh,
-          onDetails: onDetails,
-          onAdd: onAdd,
-          onEdit: (originalManga, updatedManga) {
-            // Update the manga in the results list
-            ref
-                .read(discoverControllerProvider.notifier)
-                .updateManga(originalManga.mangaDexId, updatedManga);
-          },
-        );
-      },
-      loading: () => _ShimmerSkeleton(colors: colors),
-      error: (error, stack) => _ErrorState(
-        error: error.toString(),
-        colors: colors,
-        onRetry: () => ref
-            .read(discoverControllerProvider.notifier)
-            .search(controller.text),
+          onRetry: () => ref
+              .read(discoverControllerProvider.notifier)
+              .search(controller.text),
+        ),
       ),
     );
   }
@@ -310,7 +318,7 @@ class _EmptyState extends StatelessWidget {
 class _NoResultsState extends StatelessWidget {
   final VoidInkColors colors;
 
-  const _NoResultsState({required this.colors});
+  const _NoResultsState({super.key, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -345,6 +353,7 @@ class _ErrorState extends StatelessWidget {
   final VoidCallback onRetry;
 
   const _ErrorState({
+    super.key,
     required this.error,
     required this.colors,
     required this.onRetry,
@@ -394,7 +403,7 @@ class _ErrorState extends StatelessWidget {
 class _ShimmerSkeleton extends StatelessWidget {
   final VoidInkColors colors;
 
-  const _ShimmerSkeleton({required this.colors});
+  const _ShimmerSkeleton({super.key, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +450,7 @@ class _ShimmerSkeleton extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppDimensions.space8),
                     Container(
                       height: 12,
                       width: 100,
@@ -452,7 +461,7 @@ class _ShimmerSkeleton extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppDimensions.space8),
                     Container(
                       height: 16,
                       width: 60,
@@ -483,6 +492,7 @@ class _ResultsList extends StatelessWidget {
   final void Function(MangaItem original, MangaItem updated) onEdit;
 
   const _ResultsList({
+    super.key,
     required this.results,
     required this.colors,
     required this.onRefresh,
@@ -504,11 +514,14 @@ class _ResultsList extends StatelessWidget {
             const SizedBox(height: AppDimensions.space12),
         itemBuilder: (context, index) {
           final MangaItem result = results[index];
-          return _DiscoverResultTile(
-            result: result,
-            onTap: () => onDetails(result),
-            onAdd: () => onAdd(result),
-            onEdit: (updated) => onEdit(result, updated),
+          return StaggeredListItem(
+            index: index,
+            child: _DiscoverResultTile(
+              result: result,
+              onTap: () => onDetails(result),
+              onAdd: () => onAdd(result),
+              onEdit: (updated) => onEdit(result, updated),
+            ),
           );
         },
       ),
@@ -658,7 +671,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
             child: ElevatedButton(
               onPressed: () {
                 widget.onApply(_demographics, _statuses);
-                Navigator.pop(context);
+                context.pop();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.inkPanel,
@@ -788,7 +801,7 @@ class _DiscoverResultTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppDimensions.space2),
                   Text(
                     result.author ?? 'Unknown',
                     style: AppTextStyles.bodySmall.copyWith(
@@ -797,7 +810,7 @@ class _DiscoverResultTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppDimensions.space8),
                   Row(
                     children: [
                       _buildStatusPill(colors),

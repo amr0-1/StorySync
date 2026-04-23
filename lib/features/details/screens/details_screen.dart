@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,6 +16,7 @@ import 'package:storysync/shared/widgets/status_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 import 'package:storysync/features/details/presentation/controllers/palette_controller.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart' as org_flutter_cache_manager;
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -99,7 +101,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => context.pop(),
           ),
         ),
         body: Center(
@@ -219,7 +221,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
+                                onPressed: () => ctx.pop(),
                                 child: Text(
                                   'Cancel',
                                   style: TextStyle(color: colors.textHint),
@@ -227,7 +229,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(ctx).pop();
+                                  ctx.pop();
                                   _removeFromLibrary(manga);
                                 },
                                 child: const Text(
@@ -282,14 +284,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         setState(() {
           _isInLibrary = false;
         });
-        Navigator.of(context).pop();
+        context.pop();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             VoidInkSnackbar.showSuccess(context, 'Removed from Library');
           }
         });
       } else {
-        Navigator.of(context).pop();
+        context.pop();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             VoidInkSnackbar.showError(context, 'Failed to remove from library');
@@ -368,7 +370,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
+                  onPressed: () => ctx.pop(true),
                   child: Text(
                     'Past Reading',
                     style: AppTextStyles.labelMedium.copyWith(
@@ -377,7 +379,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
+                  onPressed: () => ctx.pop(false),
                   child: Text(
                     'Current Pace',
                     style: AppTextStyles.labelMedium.copyWith(
@@ -474,16 +476,27 @@ class _HeroHeader extends StatelessWidget {
             ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
               child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
-                  Color(0x99000000),
+                colorFilter: ColorFilter.mode(
+                  colors.inkVoid.withValues(alpha: 0.6),
                   BlendMode.darken,
                 ),
-                child: CachedNetworkImage(
-                  imageUrl: manga.coverUrl!,
-                  fit: BoxFit.cover,
-                  cacheManager: CustomCacheManager.instance,
-                  errorWidget: (context, url, error) =>
-                      Container(color: colors.inkPanel),
+                child: FutureBuilder<org_flutter_cache_manager.FileInfo?>(
+                  future: CustomCacheManager.instance.getFileFromCache(manga.coverUrl!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data?.file != null) {
+                      return Image.file(
+                        snapshot.data!.file,
+                        fit: BoxFit.cover,
+                      );
+                    }
+                    return CachedNetworkImage(
+                      imageUrl: manga.coverUrl!,
+                      fit: BoxFit.cover,
+                      cacheManager: CustomCacheManager.instance,
+                      errorWidget: (context, url, error) =>
+                          Container(color: colors.inkPanel),
+                    );
+                  },
                 ),
               ),
             )
@@ -538,30 +551,41 @@ class _HeroHeader extends StatelessWidget {
                 width: 130,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x66000000),
+                      color: colors.inkVoid.withValues(alpha: 0.4),
                       blurRadius: 24,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                   child: manga.coverUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: manga.coverUrl!,
-                          fit: BoxFit.cover,
-                          cacheManager: CustomCacheManager.instance,
-                          errorWidget: (context, url, error) =>
-                              _CoverPlaceholder(colors: colors),
-                          progressIndicatorBuilder: (context, url, progress) {
-                            if (progress.progress == null) {
-                              return _CoverPlaceholder(colors: colors);
+                      ? FutureBuilder<org_flutter_cache_manager.FileInfo?>(
+                          future: CustomCacheManager.instance.getFileFromCache(manga.coverUrl!),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData && snapshot.data?.file != null) {
+                              return Image.file(
+                                snapshot.data!.file,
+                                fit: BoxFit.cover,
+                              );
                             }
-                            return _CoverPlaceholder(
-                              colors: colors,
-                              showLoading: true,
+                            return CachedNetworkImage(
+                              imageUrl: manga.coverUrl!,
+                              fit: BoxFit.cover,
+                              cacheManager: CustomCacheManager.instance,
+                              errorWidget: (context, url, error) =>
+                                  _CoverPlaceholder(colors: colors),
+                              progressIndicatorBuilder: (context, url, progress) {
+                                if (progress.progress == null) {
+                                  return _CoverPlaceholder(colors: colors);
+                                }
+                                return _CoverPlaceholder(
+                                  colors: colors,
+                                  showLoading: true,
+                                );
+                              },
                             );
                           },
                         )
@@ -592,7 +616,7 @@ class _HeroHeader extends StatelessWidget {
             left: 8,
             child: IconButton(
               icon: Icon(Icons.arrow_back_rounded, color: colors.textPrimary),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => context.pop(),
             ),
           ),
 

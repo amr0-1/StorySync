@@ -1,15 +1,13 @@
 package com.mtrack.mtrack
 
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetPlugin
 import es.antonborri.home_widget.HomeWidgetProvider
 
-class StorySyncWidgetProvider : HomeWidgetProvider() {
+class UpNextWidgetProvider : HomeWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -17,7 +15,7 @@ class StorySyncWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences
     ) {
         appWidgetIds.forEach { widgetId ->
-            val views = RemoteViews(context.packageName, R.layout.storysync_widget).apply {
+            val views = RemoteViews(context.packageName, R.layout.upnext_widget).apply {
                 val title = widgetData.getString("widget_manga_title", "No manga in progress")
                 val currentChapter = widgetData.getInt("widget_current_chapter", 0)
                 val totalChapters = widgetData.getInt("widget_total_chapters", -1)
@@ -44,7 +42,7 @@ class StorySyncWidgetProvider : HomeWidgetProvider() {
     }
 
     private fun getPendingSelfIntent(context: Context, uri: Uri): android.app.PendingIntent {
-        val intent = android.content.Intent(context, StorySyncWidgetProvider::class.java).apply {
+        val intent = android.content.Intent(context, UpNextWidgetProvider::class.java).apply {
             action = "es.antonborri.home_widget.action.BACKGROUND"
             data = uri
             putExtra("es.antonborri.home_widget.keys", arrayOf("increment"))

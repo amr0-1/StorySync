@@ -1,12 +1,11 @@
 import 'dart:convert';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:storysync/core/database/isar_service.dart';
-import 'package:storysync/core/cloud/google_drive_service.dart';
-import 'package:storysync/core/cloud/background_sync_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/data/models/reading_log.dart';
 import 'package:storysync/core/providers/theme_provider.dart';
@@ -25,9 +24,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _isCloudSyncing = false;
-  bool _isLinking = false;
-  
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
@@ -87,14 +83,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: AppDimensions.space24),
 
-          // Cloud Sync section
-          _buildSectionLabel(colors, 'CLOUD SYNC'),
-          const SizedBox(height: AppDimensions.space12),
-          _buildCloudSyncSection(colors),
-          const SizedBox(height: AppDimensions.space24),
-
-          const SizedBox(height: AppDimensions.space32),
-
           // App info
           Center(
             child: Column(
@@ -107,7 +95,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: colors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimensions.space4),
                 Text(
                   'Version 1.0.0',
                   style: AppTextStyles.bodySmall.copyWith(
@@ -174,7 +162,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               label,
               style: AppTextStyles.labelMedium.copyWith(
                 color: isSelected
-                    ? const Color(0xFF1A0F00)
+                    ? colors.inkVoid
                     : colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
@@ -218,183 +206,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildCloudSyncSection(VoidInkColors colors) {
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.space16),
-      decoration: BoxDecoration(
-        color: colors.inkSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-        border: Border.all(
-          color: colors.inkBorder,
-          width: AppDimensions.borderThin,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCloudSyncTile(
-            colors: colors,
-            icon: Icons.cloud_done_outlined,
-            title: _isLinking ? 'Connecting...' : 'Link Google Drive',
-            subtitle: 'Connect your Google account for cloud backup',
-            onTap: _isLinking ? null : _handleLinkGoogleDrive,
-          ),
-          const SizedBox(height: AppDimensions.space12),
-          _buildCloudSyncTile(
-            colors: colors,
-            icon: Icons.cloud_upload_outlined,
-            title: _isCloudSyncing ? 'Syncing...' : 'Force Cloud Sync',
-            subtitle: 'Upload backup to Google Drive now',
-            onTap: _isCloudSyncing || _isLinking ? null : _handleForceCloudSync,
-          ),
-          const SizedBox(height: AppDimensions.space16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Auto-Sync in Background',
-                style: AppTextStyles.titleSmall.copyWith(
-                  color: colors.textPrimary,
-                ),
-              ),
-              Switch(
-                value: ref.watch(autoSyncEnabledProvider),
-                onChanged: _isLinking ? null : (value) => _handleToggleAutoSync(value),
-                activeThumbColor: colors.goldSpark,
-              ),
-            ],
-          ),
-          Text(
-            'Sync every 24 hours when connected',
-            style: AppTextStyles.bodySmall.copyWith(color: colors.textHint),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCloudSyncTile({
-    required VoidInkColors colors,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, color: colors.textSecondary, size: 22),
-          const SizedBox(width: AppDimensions.space12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.titleSmall.copyWith(
-                    color: onTap != null ? colors.textPrimary : colors.textHint,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          if (onTap != null)
-            Icon(Icons.chevron_right_rounded, color: colors.textHint),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handleLinkGoogleDrive() async {
-    setState(() => _isLinking = true);
-    
-    try {
-      final driveService = GoogleDriveService();
-      final success = await driveService.signIn();
-      
-      if (mounted) {
-        if (success) {
-          VoidInkSnackbar.showSuccess(context, 'Google Drive linked successfully!');
-        } else {
-          VoidInkSnackbar.showError(context, 'Failed to link Google Drive');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        VoidInkSnackbar.showError(context, 'Failed to link Google Drive');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLinking = false);
-      }
-    }
-  }
-
-  Future<void> _handleForceCloudSync() async {
-    setState(() => _isCloudSyncing = true);
-    
-    try {
-      final driveService = GoogleDriveService();
-      final success = await driveService.signIn();
-      
-      if (!success) {
-        if (mounted) {
-          VoidInkSnackbar.showError(context, 'Please link Google Drive first');
-        }
-        return;
-      }
-      
-      final isarService = ref.read(isarServiceProvider);
-      final allManga = await isarService.getAllManga();
-      
-      final jsonData = allManga.map((e) => e.toJson()).toList();
-      final jsonString = jsonEncode(jsonData);
-      
-      final uploadSuccess = await driveService.uploadBackup(jsonString);
-      
-      await driveService.signOut();
-      
-      if (mounted) {
-        if (uploadSuccess) {
-          VoidInkSnackbar.showSuccess(context, 'Backup uploaded to Google Drive');
-        } else {
-          VoidInkSnackbar.showError(context, 'Failed to upload backup');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        VoidInkSnackbar.showError(context, 'Failed to sync: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isCloudSyncing = false);
-      }
-    }
-  }
-
-  Future<void> _handleToggleAutoSync(bool enabled) async {
-    try {
-      await ref.read(autoSyncEnabledProvider.notifier).setEnabled(enabled);
-      
-      if (mounted) {
-        if (enabled) {
-          VoidInkSnackbar.showSuccess(context, 'Auto-sync enabled');
-        } else {
-          VoidInkSnackbar.showInfo(context, 'Auto-sync disabled');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        VoidInkSnackbar.showError(context, 'Failed to update settings');
-      }
-    }
-  }
-
   Future<void> _handleExport() async {
     try {
       final isarService = ref.read(isarServiceProvider);
@@ -407,7 +218,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'exportedAt': DateTime.now().toIso8601String(),
         'version': '1.0.0',
       };
-      
+
       final String jsonString = jsonEncode(exportData);
 
       final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString));
@@ -466,7 +277,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         final isarService = ref.read(isarServiceProvider);
 
         int importedCount = 0;
-        
+
         // Import manga items
         if (decoded.containsKey('manga')) {
           final List<dynamic> mangaList = decoded['manga'] as List<dynamic>;
@@ -480,10 +291,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             }
           }
         }
-        
+
         // Import reading logs (historical data, not today's activity)
         if (decoded.containsKey('readingLogs')) {
-          final List<dynamic> logsList = decoded['readingLogs'] as List<dynamic>;
+          final List<dynamic> logsList =
+              decoded['readingLogs'] as List<dynamic>;
           for (var map in logsList) {
             try {
               final log = ReadingLog.fromJson(map as Map<String, dynamic>);
@@ -540,7 +352,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
+              onPressed: () => dialogContext.pop(),
               child: Text(
                 'Cancel',
                 style: AppTextStyles.titleSmall.copyWith(
@@ -550,7 +362,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(dialogContext);
+                dialogContext.pop();
                 // TODO: Clear actual image cache
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) {

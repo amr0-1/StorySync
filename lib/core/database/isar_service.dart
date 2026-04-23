@@ -121,26 +121,45 @@ class IsarService {
   /// was not found.
   ///
   /// Respects [totalChapters] if set - won't increment beyond total.
-  Future<bool> incrementChapter(String mangaDexId) async {
+  Future<bool> incrementChapter(String mangaDexId, {bool isPastReading = false}) async {
     final isar = await _db;
-    final manga = await getMangaByMangaDexId(mangaDexId);
+    
+    return isar.writeTxn(() async {
+      final manga = await isar.mangaItems.filter().mangaDexIdEqualTo(mangaDexId).findFirst();
 
-    if (manga == null) return false;
+      if (manga == null) return false;
 
-    // Don't increment beyond total chapters if known
-    if (manga.totalChapters != null &&
-        manga.chapterProgress >= manga.totalChapters!) {
-      return false;
-    }
+      // Don't increment beyond total chapters if known
+      if (manga.totalChapters != null &&
+          manga.chapterProgress >= manga.totalChapters!) {
+        return false;
+      }
 
-    manga.chapterProgress++;
-    manga.lastUpdated = DateTime.now();
+      manga.chapterProgress++;
+      manga.lastUpdated = DateTime.now();
 
-    await isar.writeTxn(() async {
       await isar.mangaItems.put(manga);
-    });
 
-    return true;
+      if (!isPastReading) {
+        final today = DateTime.now();
+        final logDate = DateTime(today.year, today.month, today.day);
+
+        var log = await isar.readingLogs
+            .filter()
+            .dateEqualTo(logDate)
+            .mangaDexIdEqualTo(mangaDexId)
+            .findFirst();
+
+        if (log == null) {
+          log = ReadingLog.create(date: logDate, mangaDexId: mangaDexId, chaptersRead: 1);
+        } else {
+          log.chaptersRead++;
+        }
+
+        await isar.readingLogs.put(log);
+      }
+      return true;
+    });
   }
 
   /// Decrements the chapter progress of a manga by 1.
@@ -273,6 +292,7 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
         date: normalizedDate,
         mangaDexId: mangaDexId,
         chaptersRead: 1,
+        isImported: isImport,
       );
       await isar.writeTxn(() async {
         await isar.readingLogs.put(newLog);
@@ -313,20 +333,34 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
     return isar.readingLogs.where().findAll();
   }
 
-  /// Saves a reading log (used during import).
+  /// Saves a reading log (used during import). Marks as imported.
   Future<void> saveReadingLog(ReadingLog log) async {
+    log.isImported = true;
     final isar = await _db;
     await isar.writeTxn(() async {
       await isar.readingLogs.put(log);
     });
   }
 
-  /// Saves multiple reading logs (used during import).
+  /// Saves multiple reading logs (used during import). Marks all as imported.
   Future<void> saveReadingLogs(List<ReadingLog> logs) async {
+    for (final log in logs) {
+      log.isImported = true;
+    }
     final isar = await _db;
     await isar.writeTxn(() async {
       await isar.readingLogs.putAll(logs);
     });
+  }
+
+  /// Gets all reading logs for a specific date (for heatmap day-detail).
+  Future<List<ReadingLog>> getLogsForDate(DateTime date) async {
+    final isar = await _db;
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return isar.readingLogs
+        .filter()
+        .dateEqualTo(normalizedDate)
+        .findAll();
   }
 
   /// Clears all reading logs.

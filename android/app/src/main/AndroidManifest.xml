@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:label="StorySync"
@@ -33,15 +34,26 @@
             </intent-filter>
         </activity>
         
-        <!-- Home Widget Receiver -->
-        <receiver android:name=".StorySyncWidgetProvider"
+        <!-- Up Next Widget -->
+        <receiver android:name=".UpNextWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/storysync_widget_info" />
+                android:resource="@xml/upnext_widget_info" />
+        </receiver>
+        
+        <!-- Heatmap Widget -->
+        <receiver android:name=".HeatmapWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/heatmap_widget_info" />
         </receiver>
         
         <!-- Don't delete the meta-data below.

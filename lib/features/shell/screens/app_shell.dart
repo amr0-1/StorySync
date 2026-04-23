@@ -4,23 +4,62 @@ import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 
-/// App shell with custom navigation bar
-class AppShell extends StatelessWidget {
+/// App shell with custom navigation bar and smooth tab transitions.
+///
+/// Tab switching uses a crossfade + subtle slide-up animation
+/// instead of a hard snap.
+class AppShell extends StatefulWidget {
   /// The child widget to display (routed content)
   final StatefulNavigationShell navigationShell;
 
   const AppShell({super.key, required this.navigationShell});
 
   @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  @override
   Widget build(BuildContext context) {
+    final currentIndex = widget.navigationShell.currentIndex;
+
     return Scaffold(
-      body: navigationShell,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) {
+          final fadeAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+          );
+          final slideAnimation = Tween<Offset>(
+            begin: const Offset(0, 0.015),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ));
+
+          return FadeTransition(
+            opacity: fadeAnimation,
+            child: SlideTransition(
+              position: slideAnimation,
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<int>(currentIndex),
+          child: widget.navigationShell,
+        ),
+      ),
       bottomNavigationBar: _VoidInkNavBar(
-        currentIndex: navigationShell.currentIndex,
+        currentIndex: currentIndex,
         onDestinationSelected: (index) {
-          navigationShell.goBranch(
+          widget.navigationShell.goBranch(
             index,
-            initialLocation: index == navigationShell.currentIndex,
+            initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
       ),
@@ -104,7 +143,7 @@ class _VoidInkNavBar extends StatelessWidget {
   }
 }
 
-/// Regular navigation item
+/// Regular navigation item with animated color transitions
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -126,17 +165,22 @@ class _NavItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 22,
-            color: isSelected ? colors.goldSpark : colors.textSecondary,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              icon,
+              key: ValueKey<bool>(isSelected),
+              size: 22,
+              color: isSelected ? colors.goldSpark : colors.textSecondary,
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
+          const SizedBox(height: AppDimensions.space4),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
             style: AppTextStyles.labelSmall.copyWith(
               color: isSelected ? colors.goldSpark : colors.textSecondary,
             ),
+            child: Text(label),
           ),
         ],
       ),

@@ -1,10 +1,15 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/core/native/widget_service.dart';
+import 'package:storysync/core/providers/shared_prefs_provider.dart';
 import 'package:storysync/features/discover/data/services/mangadex_service.dart';
+import 'package:storysync/features/insights/data/analytics_engine.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 
 part 'library_controller.g.dart';
+
+/// Types of smart alerts that can be triggered.
+enum SmartAlertType { burnout, streakRecovery }
 
 /// Controller for the Library feature.
 ///
@@ -50,12 +55,8 @@ class LibraryController extends _$LibraryController {
       }
     }
 
-    final result = await _isarService.incrementChapter(mangaDexId);
+    final result = await _isarService.incrementChapter(mangaDexId, isPastReading: !logToHeatmap);
     if (result) {
-      if (logToHeatmap) {
-        // Fire and forget logging
-        _isarService.logChapterRead(mangaDexId).ignore();
-      }
       // Fire and forget widget update to prevent blocking UI
       _widgetService.updateWidgetData().ignore();
     }
@@ -67,12 +68,8 @@ class LibraryController extends _$LibraryController {
     String mangaDexId,
     bool isPastReading,
   ) async {
-    final result = await _isarService.incrementChapter(mangaDexId);
+    final result = await _isarService.incrementChapter(mangaDexId, isPastReading: isPastReading);
     if (result) {
-      // If "Past Reading", don't log to today's heatmap
-      if (!isPastReading) {
-        _isarService.logChapterRead(mangaDexId).ignore();
-      }
       _widgetService.updateWidgetData().ignore();
     }
     return result;
@@ -112,6 +109,47 @@ class LibraryController extends _$LibraryController {
   /// Gets a single manga by its MangaDex ID.
   Future<MangaItem?> getManga(String mangaDexId) async {
     return _isarService.getMangaByMangaDexId(mangaDexId);
+  }
+
+  // ============================================================
+  // Smart Alerts
+  // ============================================================
+
+  static const _burnoutAlertKey = 'alert_burnout_shown';
+  static const _streakRecoveryKey = 'alert_streak_recovery_shown';
+
+  /// Check for smart alerts. Returns alert type if one should be shown, null otherwise.
+  /// Alerts are one-time triggers persisted via SharedPreferences.
+  Future<SmartAlertType?> checkSmartAlerts() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final allLogs = await _isarService.getAllReadingLogs();
+    const engine = AnalyticsEngine();
+    final agg = engine.aggregate(allLogs);
+
+    // Check burnout: >30 chapters/day for 4 consecutive days
+    if (engine.detectBurnout(agg)) {
+      final alreadyShown = prefs.getBool(_burnoutAlertKey) ?? false;
+      if (!alreadyShown) {
+        await prefs.setBool(_burnoutAlertKey, true);
+        return SmartAlertType.burnout;
+      }
+    } else {
+      // Reset if no longer in burnout state (allow re-trigger next time)
+      await prefs.remove(_burnoutAlertKey);
+    }
+
+    // Check streak recovery: streak >7 was broken
+    final streaks = engine.calculateStreaks(agg);
+    if (engine.detectStreakBreak(agg, streaks)) {
+      final lastShownKey = '${_streakRecoveryKey}_${DateTime.now().toIso8601String().substring(0, 10)}';
+      final alreadyShown = prefs.getBool(lastShownKey) ?? false;
+      if (!alreadyShown) {
+        await prefs.setBool(lastShownKey, true);
+        return SmartAlertType.streakRecovery;
+      }
+    }
+
+    return null;
   }
 
   /// Refreshes metadata (title, author, cover, synopsis) for all library items from MangaDex.

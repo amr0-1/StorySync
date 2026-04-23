@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:storysync/core/database/isar_service.dart';
@@ -60,10 +61,33 @@ class WidgetService {
         await HomeWidget.saveWidgetData<String?>(_widgetCoverUrlKey, null);
       }
 
-      await HomeWidget.updateWidget(
-        androidName: _androidWidgetName,
-        iOSName: _iOSWidgetName,
-      );
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(const Duration(days: 34)); // 35 days total
+      final logs = await isarService.getReadingLogsInRange(startDate, endDate);
+      
+      List<int> heatmapData = List.filled(35, 0);
+      List<String> heatmapDates = List.filled(35, '');
+      
+      for (int i = 0; i < 35; i++) {
+        final d = startDate.add(Duration(days: i));
+        heatmapDates[i] = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+      }
+
+      for (final log in logs) {
+        final diff = log.date.difference(DateTime(startDate.year, startDate.month, startDate.day)).inDays;
+        if (diff >= 0 && diff < 35) {
+          // ensure past reading doesn't pollute heatmap if property exists
+          heatmapData[diff] += log.chaptersRead;
+        }
+      }
+      
+      await HomeWidget.saveWidgetData<String>('widget_heatmap_data', jsonEncode(heatmapData));
+      await HomeWidget.saveWidgetData<String>('widget_heatmap_dates', jsonEncode(heatmapDates));
+
+      // Update Native Widgets
+      await HomeWidget.updateWidget(androidName: 'UpNextWidgetProvider', iOSName: 'UpNextWidget');
+      await HomeWidget.updateWidget(androidName: 'HeatmapWidgetProvider', iOSName: 'HeatmapWidget');
+      
     } catch (e) {
       // Silently fail if widget update fails
     }
@@ -86,6 +110,7 @@ class WidgetService {
     }
   }
 }
+
 
 @pragma('vm:entry-point')
 Future<void> interactiveCallback(Uri? uri) async {

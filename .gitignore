@@ -13,6 +13,9 @@
 migrate_working_dir/
 VOID_INK_PLAN.md
 Planning.md
+diff.txt
+.kilo/
+.vscode/
 
 # IntelliJ related
 *.iml
@@ -46,3 +49,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 analyze_output.txt
+
+# Open Source Release Protection
+releases/
+*.apk

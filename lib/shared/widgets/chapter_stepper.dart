@@ -108,7 +108,7 @@ class ChapterStepper extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('REMAINING', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppDimensions.space4),
                     Text(
                       remaining != null ? '$remaining' : '—',
                       style: AppTextStyles.monoMedium.copyWith(color: colors.textPrimary),
@@ -131,7 +131,7 @@ class ChapterStepper extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('PROGRESS', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppDimensions.space4),
                     Text(
                       totalChapters != null ? '$progressPercent%' : '—',
                       style: AppTextStyles.monoMedium.copyWith(

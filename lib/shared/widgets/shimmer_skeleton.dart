@@ -106,7 +106,7 @@ class SkeletonCard extends StatelessWidget {
                     height: 14,
                     borderRadius: AppDimensions.radiusXS,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppDimensions.space8),
                   // Title line 2 (shorter)
                   const ShimmerSkeleton(
                     width: 80,
@@ -161,7 +161,7 @@ class SkeletonListTile extends StatelessWidget {
                   height: 16,
                   borderRadius: AppDimensions.radiusXS,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: AppDimensions.space8),
                 // Status and author
                 Row(
                   children: [
@@ -193,7 +193,7 @@ class SkeletonListTile extends StatelessWidget {
                 height: 18,
                 borderRadius: AppDimensions.radiusXS,
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: AppDimensions.space4),
               ShimmerSkeleton(
                 width: 40,
                 height: 12,

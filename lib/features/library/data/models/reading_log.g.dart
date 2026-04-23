@@ -27,10 +27,25 @@ const ReadingLogSchema = CollectionSchema(
       name: r'date',
       type: IsarType.dateTime,
     ),
-    r'mangaDexId': PropertySchema(
+    r'isImported': PropertySchema(
       id: 2,
+      name: r'isImported',
+      type: IsarType.bool,
+    ),
+    r'isPastReading': PropertySchema(
+      id: 3,
+      name: r'isPastReading',
+      type: IsarType.bool,
+    ),
+    r'mangaDexId': PropertySchema(
+      id: 4,
       name: r'mangaDexId',
       type: IsarType.string,
+    ),
+    r'sessionId': PropertySchema(
+      id: 5,
+      name: r'sessionId',
+      type: IsarType.long,
     )
   },
   estimateSize: _readingLogEstimateSize,
@@ -92,7 +107,10 @@ void _readingLogSerialize(
 ) {
   writer.writeLong(offsets[0], object.chaptersRead);
   writer.writeDateTime(offsets[1], object.date);
-  writer.writeString(offsets[2], object.mangaDexId);
+  writer.writeBool(offsets[2], object.isImported);
+  writer.writeBool(offsets[3], object.isPastReading);
+  writer.writeString(offsets[4], object.mangaDexId);
+  writer.writeLong(offsets[5], object.sessionId);
 }
 
 ReadingLog _readingLogDeserialize(
@@ -105,7 +123,10 @@ ReadingLog _readingLogDeserialize(
   object.chaptersRead = reader.readLong(offsets[0]);
   object.date = reader.readDateTime(offsets[1]);
   object.id = id;
-  object.mangaDexId = reader.readString(offsets[2]);
+  object.isImported = reader.readBool(offsets[2]);
+  object.isPastReading = reader.readBool(offsets[3]);
+  object.mangaDexId = reader.readString(offsets[4]);
+  object.sessionId = reader.readLongOrNull(offsets[5]);
   return object;
 }
 
@@ -121,7 +142,13 @@ P _readingLogDeserializeProp<P>(
     case 1:
       return (reader.readDateTime(offset)) as P;
     case 2:
+      return (reader.readBool(offset)) as P;
+    case 3:
+      return (reader.readBool(offset)) as P;
+    case 4:
       return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -523,6 +550,26 @@ extension ReadingLogQueryFilter
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> isImportedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isImported',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      isPastReadingEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPastReading',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> mangaDexIdEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -657,6 +704,78 @@ extension ReadingLogQueryFilter
       ));
     });
   }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      sessionIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sessionId',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      sessionIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sessionId',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> sessionIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sessionId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      sessionIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sessionId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> sessionIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sessionId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> sessionIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sessionId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension ReadingLogQueryObject
@@ -691,6 +810,30 @@ extension ReadingLogQuerySortBy
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByIsImported() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isImported', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByIsImportedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isImported', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByIsPastReading() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPastReading', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByIsPastReadingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPastReading', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByMangaDexId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mangaDexId', Sort.asc);
@@ -700,6 +843,18 @@ extension ReadingLogQuerySortBy
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByMangaDexIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mangaDexId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortBySessionId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortBySessionIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionId', Sort.desc);
     });
   }
 }
@@ -742,6 +897,30 @@ extension ReadingLogQuerySortThenBy
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByIsImported() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isImported', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByIsImportedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isImported', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByIsPastReading() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPastReading', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByIsPastReadingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPastReading', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByMangaDexId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mangaDexId', Sort.asc);
@@ -751,6 +930,18 @@ extension ReadingLogQuerySortThenBy
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByMangaDexIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'mangaDexId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenBySessionId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenBySessionIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionId', Sort.desc);
     });
   }
 }
@@ -769,10 +960,28 @@ extension ReadingLogQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByIsImported() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isImported');
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByIsPastReading() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPastReading');
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByMangaDexId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'mangaDexId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctBySessionId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sessionId');
     });
   }
 }
@@ -797,9 +1006,27 @@ extension ReadingLogQueryProperty
     });
   }
 
+  QueryBuilder<ReadingLog, bool, QQueryOperations> isImportedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isImported');
+    });
+  }
+
+  QueryBuilder<ReadingLog, bool, QQueryOperations> isPastReadingProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPastReading');
+    });
+  }
+
   QueryBuilder<ReadingLog, String, QQueryOperations> mangaDexIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'mangaDexId');
+    });
+  }
+
+  QueryBuilder<ReadingLog, int?, QQueryOperations> sessionIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sessionId');
     });
   }
 }

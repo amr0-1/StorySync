@@ -17,10 +17,16 @@ class AppRouter {
       navigatorKey: _rootNavigatorKey,
       initialLocation: isFirstRun ? '/welcome' : '/library',
       routes: [
-        // Welcome route (outside shell)
+        // Welcome route (outside shell) with fade-in transition
         GoRoute(
           path: '/welcome',
-          builder: (context, state) => const WelcomeScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const WelcomeScreen(),
+            transitionDuration: const Duration(milliseconds: 400),
+            reverseTransitionDuration: const Duration(milliseconds: 300),
+            transitionsBuilder: _voidInkTransition,
+          ),
         ),
 
       // Main app shell with tab navigation
@@ -35,7 +41,13 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/library',
-                builder: (context, state) => const LibraryScreen(),
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const LibraryScreen(),
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 250),
+                  transitionsBuilder: _voidInkTransition,
+                ),
               ),
             ],
           ),
@@ -46,7 +58,20 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/insights',
-                builder: (context, state) => const InsightsScreen(),
+                pageBuilder: (context, state) {
+                  final dateStr = state.uri.queryParameters['date'];
+                  DateTime? initialDate;
+                  if (dateStr != null) {
+                    initialDate = DateTime.tryParse(dateStr);
+                  }
+                  return CustomTransitionPage(
+                    key: state.pageKey,
+                    child: InsightsScreen(initialDate: initialDate),
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration: const Duration(milliseconds: 250),
+                    transitionsBuilder: _voidInkTransition,
+                  );
+                },
               ),
             ],
           ),
@@ -57,7 +82,13 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/discover',
-                builder: (context, state) => const DiscoverScreen(),
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const DiscoverScreen(),
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 250),
+                  transitionsBuilder: _voidInkTransition,
+                ),
               ),
             ],
           ),
@@ -68,7 +99,13 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/settings',
-                builder: (context, state) => const SettingsScreen(),
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const SettingsScreen(),
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 250),
+                  transitionsBuilder: _voidInkTransition,
+                ),
               ),
             ],
           ),
@@ -86,36 +123,43 @@ class AppRouter {
             child: DetailsScreen(mangaId: mangaId),
             transitionDuration: const Duration(milliseconds: 350),
             reverseTransitionDuration: const Duration(milliseconds: 300),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  // Combine fade and slight slide up for a premium feel
-                  final fadeAnimation = CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOut,
-                  );
-                  final slideAnimation =
-                      Tween<Offset>(
-                        begin: const Offset(0, 0.05),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
-                      );
-
-                  return FadeTransition(
-                    opacity: fadeAnimation,
-                    child: SlideTransition(
-                      position: slideAnimation,
-                      child: child,
-                    ),
-                  );
-                },
+            transitionsBuilder: _voidInkTransition,
           );
         },
       ),
     ],
+    );
+  }
+
+  /// Shared "Void Ink" page transition: combined fade + subtle slide-up.
+  ///
+  /// Used across all routes for a consistent, premium feel.
+  static Widget _voidInkTransition(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final fadeAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOut,
+    );
+    final slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    return FadeTransition(
+      opacity: fadeAnimation,
+      child: SlideTransition(
+        position: slideAnimation,
+        child: child,
+      ),
     );
   }
 }
