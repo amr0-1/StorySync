@@ -30,7 +30,7 @@ _(We highly recommend downloading the latest APK/IPA from the [Releases](https:/
 
 ## 🚀 Getting Started
 
-If you wish to compile StorySync from source, ensure you have the Flutter SDK (vx.xx) installed.
+If you wish to compile StorySync from source, ensure you have the Flutter SDK (3.38.6+) installed.
 
 ### Prerequisites
 
