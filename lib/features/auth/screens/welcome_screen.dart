@@ -106,7 +106,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     count: _features.length,
                     currentIndex: _currentPage,
                     activeColor: colors.goldSpark,
-                    inactiveColor: theme.colorScheme.outline.withOpacity(0.3),
+                    inactiveColor: theme.colorScheme.outline.withValues(
+                      alpha: 0.3,
+                    ),
                   ),
                   GestureDetector(
                     onTap: _onNext,
@@ -165,9 +167,9 @@ class _FeatureCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(AppDimensions.space32),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.1),
+                color: theme.colorScheme.surface.withValues(alpha: 0.1),
                 border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                   width: 1,
                 ),
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLG),

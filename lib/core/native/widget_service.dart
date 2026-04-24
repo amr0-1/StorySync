@@ -5,8 +5,6 @@ import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 
 const String _appGroupId = 'group.com.storysync.app';
-const String _androidWidgetName = 'StorySyncWidgetProvider';
-const String _iOSWidgetName = 'StorySyncWidget';
 
 const String _widgetTitleKey = 'widget_manga_title';
 const String _widgetCurrentChapterKey = 'widget_current_chapter';
@@ -37,10 +35,11 @@ class WidgetService {
       final isarService = IsarService();
       final allManga = await isarService.getAllManga();
 
-      final readingManga = allManga
-          .where((m) => m.readingStatus == ReadingStatus.reading)
-          .toList()
-        ..sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
+      final readingManga =
+          allManga
+              .where((m) => m.readingStatus == ReadingStatus.reading)
+              .toList()
+            ..sort((a, b) => b.lastUpdated.compareTo(a.lastUpdated));
 
       MangaItem? upNext;
       if (readingManga.isNotEmpty) {
@@ -49,12 +48,27 @@ class WidgetService {
 
       if (upNext != null) {
         await HomeWidget.saveWidgetData<String>(_widgetTitleKey, upNext.title);
-        await HomeWidget.saveWidgetData<int>(_widgetCurrentChapterKey, upNext.chapterProgress);
-        await HomeWidget.saveWidgetData<int?>(_widgetTotalChaptersKey, upNext.totalChapters);
-        await HomeWidget.saveWidgetData<String>(_widgetMangaIdKey, upNext.mangaDexId);
-        await HomeWidget.saveWidgetData<String?>(_widgetCoverUrlKey, upNext.coverUrl);
+        await HomeWidget.saveWidgetData<int>(
+          _widgetCurrentChapterKey,
+          upNext.chapterProgress,
+        );
+        await HomeWidget.saveWidgetData<int?>(
+          _widgetTotalChaptersKey,
+          upNext.totalChapters,
+        );
+        await HomeWidget.saveWidgetData<String>(
+          _widgetMangaIdKey,
+          upNext.mangaDexId,
+        );
+        await HomeWidget.saveWidgetData<String?>(
+          _widgetCoverUrlKey,
+          upNext.coverUrl,
+        );
       } else {
-        await HomeWidget.saveWidgetData<String>(_widgetTitleKey, 'No manga in progress');
+        await HomeWidget.saveWidgetData<String>(
+          _widgetTitleKey,
+          'No manga in progress',
+        );
         await HomeWidget.saveWidgetData<int>(_widgetCurrentChapterKey, 0);
         await HomeWidget.saveWidgetData<int?>(_widgetTotalChaptersKey, null);
         await HomeWidget.saveWidgetData<String>(_widgetMangaIdKey, '');
@@ -62,32 +76,50 @@ class WidgetService {
       }
 
       final endDate = DateTime.now();
-      final startDate = endDate.subtract(const Duration(days: 34)); // 35 days total
+      final startDate = endDate.subtract(
+        const Duration(days: 34),
+      ); // 35 days total
       final logs = await isarService.getReadingLogsInRange(startDate, endDate);
-      
+
       List<int> heatmapData = List.filled(35, 0);
       List<String> heatmapDates = List.filled(35, '');
-      
+
       for (int i = 0; i < 35; i++) {
         final d = startDate.add(Duration(days: i));
-        heatmapDates[i] = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+        heatmapDates[i] =
+            "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
       }
 
       for (final log in logs) {
-        final diff = log.date.difference(DateTime(startDate.year, startDate.month, startDate.day)).inDays;
+        final diff = log.date
+            .difference(
+              DateTime(startDate.year, startDate.month, startDate.day),
+            )
+            .inDays;
         if (diff >= 0 && diff < 35) {
           // ensure past reading doesn't pollute heatmap if property exists
           heatmapData[diff] += log.chaptersRead;
         }
       }
-      
-      await HomeWidget.saveWidgetData<String>('widget_heatmap_data', jsonEncode(heatmapData));
-      await HomeWidget.saveWidgetData<String>('widget_heatmap_dates', jsonEncode(heatmapDates));
+
+      await HomeWidget.saveWidgetData<String>(
+        'widget_heatmap_data',
+        jsonEncode(heatmapData),
+      );
+      await HomeWidget.saveWidgetData<String>(
+        'widget_heatmap_dates',
+        jsonEncode(heatmapDates),
+      );
 
       // Update Native Widgets
-      await HomeWidget.updateWidget(androidName: 'UpNextWidgetProvider', iOSName: 'UpNextWidget');
-      await HomeWidget.updateWidget(androidName: 'HeatmapWidgetProvider', iOSName: 'HeatmapWidget');
-      
+      await HomeWidget.updateWidget(
+        androidName: 'UpNextWidgetProvider',
+        iOSName: 'UpNextWidget',
+      );
+      await HomeWidget.updateWidget(
+        androidName: 'HeatmapWidgetProvider',
+        iOSName: 'HeatmapWidget',
+      );
     } catch (e) {
       // Silently fail if widget update fails
     }
@@ -110,7 +142,6 @@ class WidgetService {
     }
   }
 }
-
 
 @pragma('vm:entry-point')
 Future<void> interactiveCallback(Uri? uri) async {
