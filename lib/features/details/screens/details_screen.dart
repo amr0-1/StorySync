@@ -205,42 +205,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   const SizedBox(height: AppDimensions.space24),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () {
-                        // Confirm deletion
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: colors.inkSurface,
-                            title: Text(
-                              'Remove from Library',
-                              style: TextStyle(color: colors.textPrimary),
-                            ),
-                            content: Text(
-                              'Are you sure you want to remove "${manga.title}" from your library?',
-                              style: TextStyle(color: colors.textSecondary),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => ctx.pop(),
-                                child: Text(
-                                  'Cancel',
-                                  style: TextStyle(color: colors.textHint),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  ctx.pop();
-                                  _removeFromLibrary(manga);
-                                },
-                                child: const Text(
-                                  'Remove',
-                                  style: TextStyle(color: Colors.redAccent),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onPressed: () => _handleDelete(manga),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         color: Colors.redAccent,
@@ -259,6 +224,137 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         ],
       ),
     );
+  }
+
+  /// Handles the delete action with a cascading-delete guard.
+  ///
+  /// If reading logs exist for this title, presents a guard dialog
+  /// offering "Move to Dropped" or "Force Delete". If no logs exist,
+  /// executes a simple delete immediately.
+  Future<void> _handleDelete(MangaItem manga) async {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    final controller = ref.read(libraryControllerProvider.notifier);
+
+    // Check for orphaned reading logs
+    final logCount = await controller.getReadingLogCount(manga.mangaDexId);
+
+    if (!mounted) return;
+
+    if (logCount > 0) {
+      // Show guard dialog with two options
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: colors.inkSurface,
+          title: Text(
+            'Reading History Found',
+            style: AppTextStyles.titleLarge.copyWith(
+              color: colors.textPrimary,
+            ),
+          ),
+          content: Text(
+            'This title has $logCount reading log${logCount == 1 ? '' : 's'}. '
+            'Would you prefer to move it to your "Dropped" list to '
+            'preserve your Insights, or permanently delete all data?',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => ctx.pop('dropped'),
+              child: Text(
+                'Move to Dropped',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: colors.goldSpark,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => ctx.pop('force'),
+              child: Text(
+                'Force Delete',
+                style: AppTextStyles.labelMedium.copyWith(
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted || action == null) return;
+
+      if (action == 'dropped') {
+        final success = await controller.moveToDropped(manga.mangaDexId);
+        if (mounted) {
+          if (success) {
+            setState(() => _isInLibrary = true);
+            _refreshMangaData();
+            VoidInkSnackbar.showSuccess(
+              context,
+              'Moved to Dropped — Insights preserved',
+            );
+          } else {
+            VoidInkSnackbar.showError(context, 'Failed to update status');
+          }
+        }
+      } else if (action == 'force') {
+        final deleted = await controller.forceDeleteWithLogs(manga.mangaDexId);
+        if (mounted) {
+          if (deleted) {
+            setState(() => _isInLibrary = false);
+            context.pop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                VoidInkSnackbar.showSuccess(
+                  context,
+                  'Deleted with all reading history',
+                );
+              }
+            });
+          } else {
+            VoidInkSnackbar.showError(context, 'Failed to delete');
+          }
+        }
+      }
+    } else {
+      // No logs — use the simple delete confirmation
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: colors.inkSurface,
+          title: Text(
+            'Remove from Library',
+            style: TextStyle(color: colors.textPrimary),
+          ),
+          content: Text(
+            'Are you sure you want to remove "${manga.title}" from your library?',
+            style: TextStyle(color: colors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => ctx.pop(false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: colors.textHint),
+              ),
+            ),
+            TextButton(
+              onPressed: () => ctx.pop(true),
+              child: const Text(
+                'Remove',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true && mounted) {
+        _removeFromLibrary(manga);
+      }
+    }
   }
 
   Future<void> _addToLibrary(MangaItem manga) async {

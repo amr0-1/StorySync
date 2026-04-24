@@ -199,7 +199,7 @@ class _LibraryByStatusProviderElement
   ReadingStatus get status => (origin as LibraryByStatusProvider).status;
 }
 
-String _$libraryControllerHash() => r'edf2bb1a94e886616a8e6ea10a0c41639c765300';
+String _$libraryControllerHash() => r'cc823372e08f9295bcc4f2e2c2dc67fa46e31222';
 
 /// Controller for the Library feature.
 ///

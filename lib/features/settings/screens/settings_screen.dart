@@ -276,33 +276,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         final isarService = ref.read(isarServiceProvider);
 
-        int importedCount = 0;
+        int importedMangaCount = 0;
+        int importedLogCount = 0;
 
-        // Import manga items
+        // ── Step 1: Upsert all MangaItems first ────────────────
+        final Set<String> validMangaDexIds = {};
         if (decoded.containsKey('manga')) {
           final List<dynamic> mangaList = decoded['manga'] as List<dynamic>;
           for (var map in mangaList) {
             try {
               final mangaItem = MangaItem.fromJson(map as Map<String, dynamic>);
               await isarService.saveManga(mangaItem);
-              importedCount++;
+              validMangaDexIds.add(mangaItem.mangaDexId);
+              importedMangaCount++;
             } catch (e) {
               continue;
             }
           }
         }
 
-        // Import reading logs (historical data, not today's activity)
+        // ── Step 2: Restore reading logs with integrity check ──
+        // Only imports logs whose mangaDexId references a valid MangaItem.
+        // Preserves original isImported/isPastReading flags so analytics
+        // mirrors the original state exactly after a backup→restore cycle.
         if (decoded.containsKey('readingLogs')) {
           final List<dynamic> logsList =
               decoded['readingLogs'] as List<dynamic>;
+          final List<ReadingLog> logs = [];
           for (var map in logsList) {
             try {
-              final log = ReadingLog.fromJson(map as Map<String, dynamic>);
-              await isarService.saveReadingLog(log);
+              logs.add(ReadingLog.fromJson(map as Map<String, dynamic>));
             } catch (e) {
               continue;
             }
+          }
+
+          if (logs.isNotEmpty) {
+            importedLogCount = await isarService
+                .restoreReadingLogsWithIntegrity(logs, validMangaDexIds);
           }
         }
 
@@ -311,7 +322,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             if (mounted) {
               VoidInkSnackbar.showSuccess(
                 context,
-                'Imported $importedCount titles successfully!',
+                'Imported $importedMangaCount titles & $importedLogCount logs',
               );
             }
           });

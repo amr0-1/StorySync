@@ -42,63 +42,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     super.dispose();
   }
 
-  Future<void> _refreshMetadata(BuildContext context) async {
-    final colors = Theme.of(context).extension<VoidInkColors>()!;
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.inkSurface,
-        content: Row(
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
-            ),
-            const SizedBox(width: AppDimensions.space16),
-            Text(
-              'Refreshing titles...',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: colors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    try {
-      final count = await ref
-          .read(libraryControllerProvider.notifier)
-          .refreshAllMetadata();
-
-      if (context.mounted) {
-        context.pop(); // Close loading dialog
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            VoidInkSnackbar.showSuccess(
-              context,
-              'Updated $count manga title${count != 1 ? 's' : ''}',
-            );
-          }
-        });
-      }
-    } catch (e) {
-      if (context.mounted) {
-        context.pop(); // Close loading dialog
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            VoidInkSnackbar.showError(
-              context,
-              'Failed to refresh: ${e.toString()}',
-            );
-          }
-        });
-      }
-    }
-  }
-
   void _showManualAddDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -141,12 +84,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             ),
             tooltip: 'Add Manga Manually',
             onPressed: () => _showManualAddDialog(context),
-          ),
-          // Refresh metadata button
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: colors.textSecondary),
-            tooltip: 'Refresh titles from MangaDex',
-            onPressed: () => _refreshMetadata(context),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: _isGridView,

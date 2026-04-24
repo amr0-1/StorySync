@@ -223,6 +223,39 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
     });
   }
 
+  /// Returns the count of [ReadingLog] entries for a given manga.
+  ///
+  /// Used by the delete guard dialog to determine if orphaned logs exist.
+  Future<int> getReadingLogCountForManga(String mangaDexId) async {
+    final isar = await _db;
+    return isar.readingLogs
+        .filter()
+        .mangaDexIdEqualTo(mangaDexId)
+        .count();
+  }
+
+  /// Atomically deletes a manga AND all its associated reading logs.
+  ///
+  /// Prevents orphaned `ReadingLog` entries that would show as
+  /// "Unknown Title" in the Insights heatmap.
+  /// Returns `true` if the manga was found and deleted.
+  Future<bool> deleteMangaWithCascade(String mangaDexId) async {
+    final isar = await _db;
+    final manga = await getMangaByMangaDexId(mangaDexId);
+
+    if (manga == null) return false;
+
+    return isar.writeTxn(() async {
+      // Cascade-delete all reading logs for this title
+      await isar.readingLogs
+          .filter()
+          .mangaDexIdEqualTo(mangaDexId)
+          .deleteAll();
+      // Then delete the manga item itself
+      return isar.mangaItems.delete(manga.id);
+    });
+  }
+
   /// Deletes all manga items from the database.
   ///
   /// Use with caution - this is destructive and cannot be undone.
@@ -266,11 +299,25 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
         .watch(fireImmediately: true);
   }
 
+  /// Watches all reading logs for changes.
+  ///
+  /// Returns a stream that emits whenever the reading log collection changes.
+  /// Used by the Insights tab for reactive analytics updates.
+  Stream<List<ReadingLog>> watchAllReadingLogs() async* {
+    final isar = await _db;
+    yield* isar.readingLogs.where().watch(fireImmediately: true);
+  }
+
   // ============================================================
   // Reading Log Operations
   // ============================================================
 
   /// Logs a chapter read for today.
+  ///
+  /// **Deprecated:** Use [incrementChapter] instead, which provides the
+  /// [isPastReading] guard to prevent historical bulk imports from
+  /// polluting the analytics heatmap.
+  @Deprecated('Use incrementChapter() which has the isPastReading guard')
   Future<void> logChapterRead(String mangaDexId, {bool isImport = false}) async {
     final isar = await _db;
     final today = DateTime.now();
@@ -351,6 +398,44 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
     await isar.writeTxn(() async {
       await isar.readingLogs.putAll(logs);
     });
+  }
+
+  /// Restores a reading log preserving its original flags.
+  ///
+  /// Unlike [saveReadingLog], this does NOT override `isImported` or
+  /// `isPastReading`. Used during JSON backup restore so analytics
+  /// mirrors the original state exactly.
+  Future<void> restoreReadingLog(ReadingLog log) async {
+    final isar = await _db;
+    await isar.writeTxn(() async {
+      await isar.readingLogs.put(log);
+    });
+  }
+
+  /// Validates and restores reading logs with referential integrity.
+  ///
+  /// Only imports logs whose [mangaDexId] exists in the provided
+  /// [mangaDexIdMap]. Preserves original `isImported`/`isPastReading`
+  /// flags so analytics are identical post-restore.
+  ///
+  /// Returns the count of successfully restored logs.
+  Future<int> restoreReadingLogsWithIntegrity(
+    List<ReadingLog> logs,
+    Set<String> validMangaDexIds,
+  ) async {
+    final isar = await _db;
+    int count = 0;
+    final validLogs = logs.where(
+      (log) => validMangaDexIds.contains(log.mangaDexId),
+    ).toList();
+
+    if (validLogs.isEmpty) return 0;
+
+    await isar.writeTxn(() async {
+      await isar.readingLogs.putAll(validLogs);
+      count = validLogs.length;
+    });
+    return count;
   }
 
   /// Gets all reading logs for a specific date (for heatmap day-detail).

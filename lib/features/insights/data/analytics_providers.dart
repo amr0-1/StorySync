@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/insights/data/analytics_engine.dart';
 import 'package:storysync/features/insights/data/analytics_models.dart';
@@ -49,16 +50,24 @@ Future<AnalyticsSnapshot> _computeSnapshot(_ComputePayload payload) async {
 
 /// The single source of truth for the Insights UI.
 ///
-/// Fetches all logs + manga from Isar, pipes through AnalyticsEngine via an Isolate,
-/// and returns a complete [AnalyticsSnapshot].
-final analyticsSnapshotProvider = FutureProvider<AnalyticsSnapshot>((ref) async {
+/// Uses [Rx.combineLatest2] to watch BOTH the ReadingLog collection
+/// AND the MangaItem collection. Whenever either changes, the full
+/// [AnalyticsSnapshot] is recomputed via an Isolate.
+///
+/// This fixes the reactivity bug where adding a new title required
+/// an app restart to appear in the Insights heatmap.
+final analyticsSnapshotProvider = StreamProvider<AnalyticsSnapshot>((ref) {
   final isarService = ref.watch(isarServiceProvider);
 
-  // Fetch raw data (async, non-blocking)
-  final allManga = await isarService.getAllManga();
-  final allLogs = await isarService.getAllReadingLogs();
-
-  return await compute(_computeSnapshot, _ComputePayload(allLogs, allManga));
+  // Combine both streams — fires when EITHER collection changes
+  return Rx.combineLatest2<List<ReadingLog>, List<MangaItem>,
+      _ComputePayload>(
+    isarService.watchAllReadingLogs(),
+    isarService.watchAllManga(),
+    (logs, manga) => _ComputePayload(logs, manga),
+  ).asyncMap((payload) async {
+    return await compute(_computeSnapshot, payload);
+  });
 });
 
 /// Provider for day-detail data (triggered by heatmap tap).

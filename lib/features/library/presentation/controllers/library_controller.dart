@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/core/native/widget_service.dart';
 import 'package:storysync/core/providers/shared_prefs_provider.dart';
-import 'package:storysync/features/discover/data/services/mangadex_service.dart';
 import 'package:storysync/features/insights/data/analytics_engine.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 
@@ -19,6 +18,11 @@ enum SmartAlertType { burnout, streakRecovery }
 class LibraryController extends _$LibraryController {
   IsarService get _isarService => ref.read(isarServiceProvider);
   WidgetService get _widgetService => ref.read(widgetServiceProvider);
+
+  /// Session-scoped set of manga IDs where the 50+ chapter alert
+  /// has been acknowledged. Prevents the dialog from re-triggering
+  /// on every subsequent increment. Resets on app restart.
+  final Set<String> _acknowledgedHighChapterAlerts = {};
 
   @override
   Stream<List<MangaItem>> build() {
@@ -43,12 +47,15 @@ class LibraryController extends _$LibraryController {
   /// Increments the chapter progress of a manga by 1.
   ///
   /// Returns `true` if successful, `false` if manga not found or at max.
+  /// Returns `false` specifically when the 50+ chapter guard triggers
+  /// to signal the UI to show the confirmation dialog.
   Future<bool> incrementChapter(
     String mangaDexId, {
     bool logToHeatmap = true,
   }) async {
-    // Check if we should warn about high chapter count
-    if (logToHeatmap) {
+    // Check if we should warn about high chapter count.
+    // Skip if the user has already acknowledged for this title this session.
+    if (logToHeatmap && !_acknowledgedHighChapterAlerts.contains(mangaDexId)) {
       final todayCount = await _isarService.getTodayChapterCount(mangaDexId);
       if (todayCount >= 50) {
         return false; // Signal that we need user confirmation
@@ -64,10 +71,16 @@ class LibraryController extends _$LibraryController {
   }
 
   /// Handles the 50+ chapter alert and saves based on user choice.
+  ///
+  /// Records the acknowledgment so subsequent increments bypass the
+  /// 50+ guard for the remainder of this session.
   Future<bool> confirmAndIncrementChapter(
     String mangaDexId,
     bool isPastReading,
   ) async {
+    // Mark as acknowledged — future increments skip the 50+ guard
+    _acknowledgedHighChapterAlerts.add(mangaDexId);
+
     final result = await _isarService.incrementChapter(mangaDexId, isPastReading: isPastReading);
     if (result) {
       _widgetService.updateWidgetData().ignore();
@@ -94,11 +107,32 @@ class LibraryController extends _$LibraryController {
     return _isarService.updateStatus(mangaDexId, status);
   }
 
-  /// Removes a manga from the library.
+  /// Removes a manga from the library (simple delete, no cascade).
   ///
   /// Returns `true` if successfully deleted, `false` if not found.
   Future<bool> removeManga(String mangaDexId) async {
     return _isarService.deleteManga(mangaDexId);
+  }
+
+  /// Returns the count of reading log entries for a given manga.
+  ///
+  /// Used by the delete guard dialog to check for orphaned logs.
+  Future<int> getReadingLogCount(String mangaDexId) async {
+    return _isarService.getReadingLogCountForManga(mangaDexId);
+  }
+
+  /// Moves a manga to the "Dropped" status, preserving all reading logs.
+  ///
+  /// Used as the safe alternative to deletion when logs exist.
+  Future<bool> moveToDropped(String mangaDexId) async {
+    return _isarService.updateStatus(mangaDexId, ReadingStatus.dropped);
+  }
+
+  /// Atomically deletes a manga AND all its associated reading logs.
+  ///
+  /// This is the "force delete" path — prevents orphaned logs.
+  Future<bool> forceDeleteWithLogs(String mangaDexId) async {
+    return _isarService.deleteMangaWithCascade(mangaDexId);
   }
 
   /// Checks if a manga exists in the library.
@@ -150,88 +184,6 @@ class LibraryController extends _$LibraryController {
     }
 
     return null;
-  }
-
-  /// Refreshes metadata (title, author, cover, synopsis) for all library items from MangaDex.
-  ///
-  /// This is useful for updating titles to English or fixing outdated metadata.
-  /// Returns the number of successfully updated items.
-  Future<int> refreshAllMetadata() async {
-    final mangaDexService = ref.read(mangaDexServiceProvider);
-    final allManga = await _isarService.getAllManga();
-    int successCount = 0;
-
-    for (final manga in allManga) {
-      if (manga.source == 'manual') {
-        // Skip manually added items entirely, they don't have a MangaDex link
-        continue;
-      }
-
-      try {
-        // Fetch fresh data from MangaDex
-        final freshData = await mangaDexService.getMangaDetails(
-          manga.mangaDexId,
-        );
-
-        if (manga.hasCustomMetadata) {
-          // Check what was changed compared to the newly fetched API data
-          bool isTitleChanged = manga.title != freshData.title;
-          bool isAuthorChanged =
-              manga.author != freshData.author &&
-              manga.author != null &&
-              manga.author!.isNotEmpty;
-          bool isCoverChanged =
-              manga.coverUrl != freshData.coverUrl &&
-              manga.coverUrl != null &&
-              manga.coverUrl!.isNotEmpty;
-          bool isSynopsisChanged =
-              manga.synopsis != freshData.synopsis &&
-              manga.synopsis != null &&
-              manga.synopsis!.isNotEmpty;
-
-          // If nothing is as it was fetched from the API, don't touch anything at all (except total chapters count)
-          if (isTitleChanged &&
-              isAuthorChanged &&
-              isCoverChanged &&
-              isSynopsisChanged) {
-            manga.totalChapters =
-                freshData.totalChapters ?? manga.totalChapters;
-          } else {
-            // Keep the changed things as they are, but update the things that haven't been manually changed
-            if (!isTitleChanged) {
-              manga.title = freshData.title;
-            }
-            if (!isAuthorChanged) {
-              manga.author = freshData.author;
-            }
-            if (!isCoverChanged) {
-              manga.coverUrl = freshData.coverUrl;
-            }
-            if (!isSynopsisChanged) {
-              manga.synopsis = freshData.synopsis;
-            }
-            manga.totalChapters =
-                freshData.totalChapters ?? manga.totalChapters;
-          }
-        } else {
-          // Preserve user's tracking data, update full metadata
-          manga.title = freshData.title;
-          manga.author = freshData.author;
-          manga.coverUrl = freshData.coverUrl;
-          manga.synopsis = freshData.synopsis;
-          manga.totalChapters = freshData.totalChapters ?? manga.totalChapters;
-        }
-
-        // Save updated manga
-        await _isarService.saveManga(manga);
-        successCount++;
-      } catch (e) {
-        // Skip this manga if fetch fails, continue with others
-        continue;
-      }
-    }
-
-    return successCount;
   }
 }
 

@@ -24,36 +24,7 @@ class _AppShellState extends State<AppShell> {
     final currentIndex = widget.navigationShell.currentIndex;
 
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, animation) {
-          final fadeAnimation = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          );
-          final slideAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.015),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          ));
-
-          return FadeTransition(
-            opacity: fadeAnimation,
-            child: SlideTransition(
-              position: slideAnimation,
-              child: child,
-            ),
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(currentIndex),
-          child: widget.navigationShell,
-        ),
-      ),
+      body: widget.navigationShell,
       bottomNavigationBar: _VoidInkNavBar(
         currentIndex: currentIndex,
         onDestinationSelected: (index) {
