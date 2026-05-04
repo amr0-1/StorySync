@@ -104,11 +104,9 @@ class _ReadingStateWrapperState extends State<ReadingStateWrapper>
       animation: controller,
       builder: (context, child) {
         // Breathing fade: 0.85 → 1.0 → 0.85
-        final opacity = 0.85 + (0.15 * Curves.easeInOut.transform(controller.value));
-        return Opacity(
-          opacity: opacity,
-          child: child,
-        );
+        final opacity =
+            0.85 + (0.15 * Curves.easeInOut.transform(controller.value));
+        return Opacity(opacity: opacity, child: child);
       },
       child: widget.child,
     );

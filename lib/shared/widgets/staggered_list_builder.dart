@@ -36,10 +36,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
 
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
@@ -49,10 +46,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.08),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     // Calculate stagger delay, capped at index 12
     final cappedIndex = widget.index.clamp(0, 12);
@@ -73,10 +67,7 @@ class _StaggeredListItemState extends State<StaggeredListItem>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
     );
   }
 }

@@ -6,7 +6,8 @@ import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart' as org_flutter_cache_manager;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'
+    as org_flutter_cache_manager;
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
@@ -49,10 +50,7 @@ class MangaListTile extends StatelessWidget {
     }
 
     // Wrap in deep press for tap feedback
-    return DeepPressCard(
-      onTap: onTap,
-      child: tile,
-    );
+    return DeepPressCard(onTap: onTap, child: tile);
   }
 
   Widget _buildTileContent(VoidInkColors colors) {
@@ -140,28 +138,16 @@ class MangaListTile extends StatelessWidget {
 
   Widget _buildThumbnail(VoidInkColors colors) {
     if (manga.coverUrl != null && manga.coverUrl!.isNotEmpty) {
-      return FutureBuilder<org_flutter_cache_manager.FileInfo?>(
-        future: CustomCacheManager.instance.getFileFromCache(manga.coverUrl!),
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data?.file != null) {
-            return Image.file(
-              snapshot.data!.file,
-              fit: BoxFit.cover,
-            );
-          }
-
-          return CachedNetworkImage(
-            imageUrl: manga.coverUrl!,
-            fit: BoxFit.cover,
-            cacheManager: CustomCacheManager.instance,
-            memCacheWidth: (AppDimensions.listThumbWidth * 2).toInt(),
-            memCacheHeight: (AppDimensions.listThumbHeight * 2).toInt(),
-            errorWidget: (context, url, error) => _buildPlaceholder(colors),
-            progressIndicatorBuilder: (context, url, progress) {
-              if (progress.progress == null) return _buildPlaceholder(colors);
-              return _buildPlaceholder(colors, showLoading: true);
-            },
-          );
+      return CachedNetworkImage(
+        imageUrl: manga.coverUrl!,
+        fit: BoxFit.cover,
+        cacheManager: CustomCacheManager.instance,
+        memCacheWidth: (AppDimensions.listThumbWidth * 2).toInt(),
+        memCacheHeight: (AppDimensions.listThumbHeight * 2).toInt(),
+        errorWidget: (context, url, error) => _buildPlaceholder(colors),
+        progressIndicatorBuilder: (context, url, progress) {
+          if (progress.progress == null) return _buildPlaceholder(colors);
+          return _buildPlaceholder(colors, showLoading: true);
         },
       );
     }

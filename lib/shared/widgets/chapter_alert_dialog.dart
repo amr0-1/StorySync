@@ -50,17 +50,11 @@ class ChapterAlertDialog extends StatelessWidget {
       ),
       title: Row(
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: colors.goldSpark,
-            size: 24,
-          ),
+          Icon(Icons.warning_amber_rounded, color: colors.goldSpark, size: 24),
           const SizedBox(width: AppDimensions.space8),
           Text(
             'Whoa, that\'s a lot!',
-            style: AppTextStyles.titleLarge.copyWith(
-              color: colors.textPrimary,
-            ),
+            style: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
           ),
         ],
       ),
@@ -117,9 +111,7 @@ class ChapterAlertDialog extends StatelessWidget {
           ),
           child: Text(
             'Current Pace',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: colors.inkVoid,
-            ),
+            style: AppTextStyles.labelMedium.copyWith(color: colors.inkVoid),
           ),
         ),
       ],

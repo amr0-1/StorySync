@@ -7,7 +7,8 @@ import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart' as org_flutter_cache_manager;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'
+    as org_flutter_cache_manager;
 import 'package:storysync/shared/widgets/chapter_badge.dart';
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
@@ -59,13 +60,16 @@ class _MangaGridCardState extends State<MangaGridCard>
         vsync: this,
         duration: const Duration(milliseconds: 800),
       );
-      _highlightAnimation = TweenSequence<double>([
-        TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.35), weight: 40),
-        TweenSequenceItem(tween: Tween(begin: 0.35, end: 0.0), weight: 60),
-      ]).animate(CurvedAnimation(
-        parent: _highlightController!,
-        curve: Curves.easeInOut,
-      ));
+      _highlightAnimation =
+          TweenSequence<double>([
+            TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.35), weight: 40),
+            TweenSequenceItem(tween: Tween(begin: 0.35, end: 0.0), weight: 60),
+          ]).animate(
+            CurvedAnimation(
+              parent: _highlightController!,
+              curve: Curves.easeInOut,
+            ),
+          );
       // Slight delay before triggering
       Future.delayed(const Duration(milliseconds: 400), () {
         if (mounted) _highlightController?.forward();
@@ -104,7 +108,9 @@ class _MangaGridCardState extends State<MangaGridCard>
               borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: colors.goldDim.withValues(alpha: _highlightAnimation!.value),
+                  color: colors.goldDim.withValues(
+                    alpha: _highlightAnimation!.value,
+                  ),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),
@@ -118,10 +124,7 @@ class _MangaGridCardState extends State<MangaGridCard>
     }
 
     // Wrap in deep press for tap feedback
-    return DeepPressCard(
-      onTap: widget.onTap,
-      child: card,
-    );
+    return DeepPressCard(onTap: widget.onTap, child: card);
   }
 
   Widget _buildCardContent(VoidInkColors colors) {
@@ -162,7 +165,10 @@ class _MangaGridCardState extends State<MangaGridCard>
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, colors.inkVoid.withValues(alpha: 0.6)],
+                        colors: [
+                          Colors.transparent,
+                          colors.inkVoid.withValues(alpha: 0.6),
+                        ],
                       ),
                     ),
                   ),
@@ -186,8 +192,7 @@ class _MangaGridCardState extends State<MangaGridCard>
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (_) => setState(() => _isButtonPressed = true),
                     onTapUp: (_) => setState(() => _isButtonPressed = false),
-                    onTapCancel: () =>
-                        setState(() => _isButtonPressed = false),
+                    onTapCancel: () => setState(() => _isButtonPressed = false),
                     onTap: () {
                       StorySyncHaptics.lightTap();
                       widget.onQuickIncrement();
@@ -258,28 +263,16 @@ class _MangaGridCardState extends State<MangaGridCard>
 
   Widget _buildCoverImage(VoidInkColors colors) {
     if (widget.manga.coverUrl != null && widget.manga.coverUrl!.isNotEmpty) {
-      return FutureBuilder<org_flutter_cache_manager.FileInfo?>(
-        future: CustomCacheManager.instance.getFileFromCache(widget.manga.coverUrl!),
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data?.file != null) {
-            return Image.file(
-              snapshot.data!.file,
-              fit: BoxFit.cover,
-            );
-          }
-
-          return CachedNetworkImage(
-            imageUrl: widget.manga.coverUrl!,
-            fit: BoxFit.cover,
-            cacheManager: CustomCacheManager.instance,
-            memCacheWidth: (AppDimensions.gridCardWidth * 2).toInt(),
-            memCacheHeight: (AppDimensions.gridCoverHeight * 2).toInt(),
-            errorWidget: (context, url, error) => _buildPlaceholder(colors),
-            progressIndicatorBuilder: (context, url, progress) {
-              if (progress.progress == null) return _buildPlaceholder(colors);
-              return _buildPlaceholder(colors, showLoading: true);
-            },
-          );
+      return CachedNetworkImage(
+        imageUrl: widget.manga.coverUrl!,
+        fit: BoxFit.cover,
+        cacheManager: CustomCacheManager.instance,
+        memCacheWidth: (AppDimensions.gridCardWidth * 2).toInt(),
+        memCacheHeight: (AppDimensions.gridCoverHeight * 2).toInt(),
+        errorWidget: (context, url, error) => _buildPlaceholder(colors),
+        progressIndicatorBuilder: (context, url, progress) {
+          if (progress.progress == null) return _buildPlaceholder(colors);
+          return _buildPlaceholder(colors, showLoading: true);
         },
       );
     }

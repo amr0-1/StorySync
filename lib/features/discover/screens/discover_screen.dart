@@ -253,7 +253,10 @@ class _DiscoverContent extends ConsumerWidget {
       child: asyncResults.when(
         data: (results) {
           if (results.isEmpty) {
-            return _NoResultsState(key: const ValueKey('no_results'), colors: colors);
+            return _NoResultsState(
+              key: const ValueKey('no_results'),
+              colors: colors,
+            );
           }
 
           return _ResultsList(
@@ -271,7 +274,8 @@ class _DiscoverContent extends ConsumerWidget {
             },
           );
         },
-        loading: () => _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
+        loading: () =>
+            _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
         error: (error, stack) => _ErrorState(
           key: const ValueKey('error'),
           error: error.toString(),
@@ -565,140 +569,140 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         padding: const EdgeInsets.all(AppDimensions.space16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title with gold border
-          Container(
-            padding: const EdgeInsets.only(bottom: AppDimensions.space12),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: colors.goldSpark,
-                  width: AppDimensions.borderThin,
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Filter Results',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _demographics.clear();
-                      _statuses.clear();
-                    });
-                  },
-                  child: Text(
-                    'Clear',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: colors.goldSpark,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppDimensions.space16),
-
-          // Demographic filters
-          Text(
-            'DEMOGRAPHIC',
-            style: AppTextStyles.overline.copyWith(color: colors.textHint),
-          ),
-          const SizedBox(height: AppDimensions.space8),
-          Wrap(
-            spacing: AppDimensions.space8,
-            runSpacing: AppDimensions.space8,
-            children: ['Shounen', 'Seinen', 'Josei', 'Shoujo']
-                .map(
-                  (d) => _FilterChipWidget(
-                    label: d,
-                    isSelected: _demographics.contains(d),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _demographics.add(d);
-                        } else {
-                          _demographics.remove(d);
-                        }
-                      });
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: AppDimensions.space16),
-
-          // Status filters
-          Text(
-            'STATUS',
-            style: AppTextStyles.overline.copyWith(color: colors.textHint),
-          ),
-          const SizedBox(height: AppDimensions.space8),
-          Wrap(
-            spacing: AppDimensions.space8,
-            runSpacing: AppDimensions.space8,
-            children: ['Publishing', 'Finished', 'Hiatus', 'Cancelled']
-                .map(
-                  (s) => _FilterChipWidget(
-                    label: s,
-                    isSelected: _statuses.contains(s),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _statuses.add(s);
-                        } else {
-                          _statuses.remove(s);
-                        }
-                      });
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: AppDimensions.space24),
-
-          // Apply button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: () {
-                widget.onApply(_demographics, _statuses);
-                context.pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.inkPanel,
-                foregroundColor: colors.textPrimary,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
-                  side: BorderSide(
-                    color: colors.inkBorder,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title with gold border
+            Container(
+              padding: const EdgeInsets.only(bottom: AppDimensions.space12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: colors.goldSpark,
                     width: AppDimensions.borderThin,
                   ),
                 ),
               ),
-              child: Text(
-                'Apply',
-                style: AppTextStyles.titleMedium.copyWith(
-                  color: colors.textPrimary,
+              child: Row(
+                children: [
+                  Text(
+                    'Filter Results',
+                    style: AppTextStyles.titleMedium.copyWith(
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _demographics.clear();
+                        _statuses.clear();
+                      });
+                    },
+                    child: Text(
+                      'Clear',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: colors.goldSpark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppDimensions.space16),
+
+            // Demographic filters
+            Text(
+              'DEMOGRAPHIC',
+              style: AppTextStyles.overline.copyWith(color: colors.textHint),
+            ),
+            const SizedBox(height: AppDimensions.space8),
+            Wrap(
+              spacing: AppDimensions.space8,
+              runSpacing: AppDimensions.space8,
+              children: ['Shounen', 'Seinen', 'Josei', 'Shoujo']
+                  .map(
+                    (d) => _FilterChipWidget(
+                      label: d,
+                      isSelected: _demographics.contains(d),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _demographics.add(d);
+                          } else {
+                            _demographics.remove(d);
+                          }
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: AppDimensions.space16),
+
+            // Status filters
+            Text(
+              'STATUS',
+              style: AppTextStyles.overline.copyWith(color: colors.textHint),
+            ),
+            const SizedBox(height: AppDimensions.space8),
+            Wrap(
+              spacing: AppDimensions.space8,
+              runSpacing: AppDimensions.space8,
+              children: ['Publishing', 'Finished', 'Hiatus', 'Cancelled']
+                  .map(
+                    (s) => _FilterChipWidget(
+                      label: s,
+                      isSelected: _statuses.contains(s),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _statuses.add(s);
+                          } else {
+                            _statuses.remove(s);
+                          }
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: AppDimensions.space24),
+
+            // Apply button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  widget.onApply(_demographics, _statuses);
+                  context.pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.inkPanel,
+                  foregroundColor: colors.textPrimary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+                    side: BorderSide(
+                      color: colors.inkBorder,
+                      width: AppDimensions.borderThin,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Apply',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: colors.textPrimary,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: AppDimensions.space8),
-        ],
+            const SizedBox(height: AppDimensions.space8),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 /// Custom filter chip

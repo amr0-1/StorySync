@@ -135,10 +135,8 @@ class AnalyticsEngine {
     }
     final avgDaysPerWeek = weeksActive.values.isEmpty
         ? 0.0
-        : weeksActive.values
-                .map((s) => s.length)
-                .reduce((a, b) => a + b) /
-            weeksActive.values.length;
+        : weeksActive.values.map((s) => s.length).reduce((a, b) => a + b) /
+              weeksActive.values.length;
     if (avgDaysPerWeek >= 5) return ReadingRhythm.consistentTracker;
 
     // Priority 4: Comeback Kid — streak broken and resumed within 3 days
@@ -195,8 +193,8 @@ class AnalyticsEngine {
     final direction = ratio > 0.5
         ? TrendDirection.up
         : ratio < -0.5
-            ? TrendDirection.down
-            : TrendDirection.stable;
+        ? TrendDirection.down
+        : TrendDirection.stable;
 
     return VelocityTrend(
       last7: last7,
@@ -212,8 +210,7 @@ class AnalyticsEngine {
 
   /// Get top 3 most consumed series, cold/abandoned series (>14 days no activity),
   /// and hot/binge series (>15 chapters in a single day).
-  TitleAnalytics getTitleAnalytics(
-      AggregatedLogs agg, List<MangaItem> manga) {
+  TitleAnalytics getTitleAnalytics(AggregatedLogs agg, List<MangaItem> manga) {
     final now = _normalizeDate(DateTime.now());
     final fourteenDaysAgo = now.subtract(const Duration(days: 14));
     final mangaMap = {for (final m in manga) m.mangaDexId: m};
@@ -247,12 +244,14 @@ class AnalyticsEngine {
       }
       titleDailyMax[entry.key] = maxInOneDay;
 
-      allStats.add(TitleStat(
-        mangaDexId: entry.key,
-        title: mangaItem.title,
-        totalChapters: total,
-        lastActivity: latest,
-      ));
+      allStats.add(
+        TitleStat(
+          mangaDexId: entry.key,
+          title: mangaItem.title,
+          totalChapters: total,
+          lastActivity: latest,
+        ),
+      );
     }
 
     // Sort by total chapters (desc) for top 3
@@ -297,12 +296,17 @@ class AnalyticsEngine {
     if (velocity.direction == TrendDirection.up && velocity.prev7 > 0) {
       final mult = velocity.last7 / velocity.prev7;
       if (mult >= 2) {
-        insights.add('📈 You read ${mult.toStringAsFixed(1)}x more than last week');
+        insights.add(
+          '📈 You read ${mult.toStringAsFixed(1)}x more than last week',
+        );
       } else {
         insights.add('📈 Reading pace picked up from last week');
       }
-    } else if (velocity.direction == TrendDirection.down && velocity.prev7 > 0) {
-      insights.add('📉 Slowed down a bit — that\'s okay, quality over quantity');
+    } else if (velocity.direction == TrendDirection.down &&
+        velocity.prev7 > 0) {
+      insights.add(
+        '📉 Slowed down a bit — that\'s okay, quality over quantity',
+      );
     }
     if (velocity.last7 > 0) {
       insights.add('📖 ${velocity.last7} chapters in the last 7 days');
@@ -324,18 +328,24 @@ class AnalyticsEngine {
     // Top series insight
     if (titleAnalytics.topSeries.isNotEmpty) {
       final top = titleAnalytics.topSeries.first;
-      insights.add('❤️ "${top.title}" is your most read (${top.totalChapters} ch.)');
+      insights.add(
+        '❤️ "${top.title}" is your most read (${top.totalChapters} ch.)',
+      );
     }
 
     // Cold series insight
     if (titleAnalytics.coldSeries.isNotEmpty) {
-      insights.add('❄️ ${titleAnalytics.coldSeries.length} series idle for 14+ days');
+      insights.add(
+        '❄️ ${titleAnalytics.coldSeries.length} series idle for 14+ days',
+      );
     }
 
     // Hot/Binge series insight
     if (titleAnalytics.hotSeries.isNotEmpty) {
       final hot = titleAnalytics.hotSeries.first;
-      insights.add('🔥 You binge-read "${hot.title}" — 15+ chapters in one day');
+      insights.add(
+        '🔥 You binge-read "${hot.title}" — 15+ chapters in one day',
+      );
     }
 
     // Total activity
@@ -383,19 +393,19 @@ class AnalyticsEngine {
           (titleChapters[log.mangaDexId] ?? 0) + log.chaptersRead;
     }
 
-    final titles = titleChapters.entries.map((e) {
-      final manga = mangaMap[e.key];
-      return DayTitleEntry(
-        mangaDexId: e.key,
-        title: manga?.title ?? 'Unknown Title',
-        chaptersRead: e.value,
-      );
-    }).toList()
-      ..sort((a, b) {
-        final chapterCompare = b.chaptersRead.compareTo(a.chaptersRead);
-        if (chapterCompare != 0) return chapterCompare;
-        return a.title.compareTo(b.title);
-      });
+    final titles =
+        titleChapters.entries.map((e) {
+          final manga = mangaMap[e.key];
+          return DayTitleEntry(
+            mangaDexId: e.key,
+            title: manga?.title ?? 'Unknown Title',
+            chaptersRead: e.value,
+          );
+        }).toList()..sort((a, b) {
+          final chapterCompare = b.chaptersRead.compareTo(a.chaptersRead);
+          if (chapterCompare != 0) return chapterCompare;
+          return a.title.compareTo(b.title);
+        });
 
     final totalChapters = titleChapters.values.fold<int>(0, (a, b) => a + b);
 

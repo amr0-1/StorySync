@@ -98,10 +98,7 @@ class _PersonalityHeaderState extends State<PersonalityHeader>
           // Streak counter
           Row(
             children: [
-              _StreakBadge(
-                streak: widget.currentStreak,
-                colors: colors,
-              ),
+              _StreakBadge(streak: widget.currentStreak, colors: colors),
             ],
           ),
         ],
@@ -114,10 +111,7 @@ class _StreakBadge extends StatelessWidget {
   final int streak;
   final VoidInkColors colors;
 
-  const _StreakBadge({
-    required this.streak,
-    required this.colors,
-  });
+  const _StreakBadge({required this.streak, required this.colors});
 
   @override
   Widget build(BuildContext context) {

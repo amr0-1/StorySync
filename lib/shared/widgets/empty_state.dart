@@ -87,7 +87,9 @@ class EmptyState extends StatelessWidget {
             // Title
             Text(
               title,
-              style: AppTextStyles.titleMedium.copyWith(color: colors.textPrimary),
+              style: AppTextStyles.titleMedium.copyWith(
+                color: colors.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppDimensions.space8),
@@ -95,7 +97,9 @@ class EmptyState extends StatelessWidget {
             // Subtitle
             Text(
               subtitle,
-              style: AppTextStyles.bodySmall.copyWith(color: colors.textSecondary),
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colors.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
 

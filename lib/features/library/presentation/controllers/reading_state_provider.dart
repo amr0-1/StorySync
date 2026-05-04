@@ -13,7 +13,9 @@ import 'package:storysync/features/library/presentation/controllers/library_cont
 ///
 /// Returns `Map<String, ReadingState>` keyed by `mangaDexId`.
 /// Invalidates when library data changes.
-final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((ref) async {
+final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((
+  ref,
+) async {
   // Watch library controller to auto-recompute when data changes
   final libraryAsync = ref.watch(libraryControllerProvider);
 
@@ -32,15 +34,18 @@ final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((ref) as
   final fourteenDaysAgo = today.subtract(const Duration(days: 14));
 
   // Fetch all organic reading logs from the last 14 days in one batch
-  final recentLogs = await isarService.getReadingLogsInRange(fourteenDaysAgo, today);
+  final recentLogs = await isarService.getReadingLogsInRange(
+    fourteenDaysAgo,
+    today,
+  );
 
   // Pre-group by mangaDexId for efficient lookups
   final Map<String, List<_LogEntry>> logsByManga = {};
   for (final log in recentLogs) {
     if (log.isImported || log.isPastReading) continue;
-    logsByManga.putIfAbsent(log.mangaDexId, () => []).add(
-      _LogEntry(date: log.date, chapters: log.chaptersRead),
-    );
+    logsByManga
+        .putIfAbsent(log.mangaDexId, () => [])
+        .add(_LogEntry(date: log.date, chapters: log.chaptersRead));
   }
 
   final Map<String, ReadingState> result = {};
@@ -57,7 +62,11 @@ final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((ref) as
     // Calculate chapters in last 24h
     int chaptersIn24h = 0;
     for (final log in logs) {
-      final normalizedDate = DateTime(log.date.year, log.date.month, log.date.day);
+      final normalizedDate = DateTime(
+        log.date.year,
+        log.date.month,
+        log.date.day,
+      );
       if (!normalizedDate.isBefore(oneDayAgo)) {
         chaptersIn24h += log.chapters;
       }
@@ -66,7 +75,11 @@ final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((ref) as
     // Calculate chapters in last 3 days
     int chaptersIn3Days = 0;
     for (final log in logs) {
-      final normalizedDate = DateTime(log.date.year, log.date.month, log.date.day);
+      final normalizedDate = DateTime(
+        log.date.year,
+        log.date.month,
+        log.date.day,
+      );
       if (!normalizedDate.isBefore(threeDaysAgo)) {
         chaptersIn3Days += log.chapters;
       }
@@ -81,7 +94,11 @@ final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((ref) as
     // Cold check: most recent activity > 14 days ago
     DateTime? mostRecent;
     for (final log in logs) {
-      final normalizedDate = DateTime(log.date.year, log.date.month, log.date.day);
+      final normalizedDate = DateTime(
+        log.date.year,
+        log.date.month,
+        log.date.day,
+      );
       if (mostRecent == null || normalizedDate.isAfter(mostRecent)) {
         mostRecent = normalizedDate;
       }

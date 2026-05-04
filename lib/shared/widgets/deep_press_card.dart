@@ -71,10 +71,7 @@ class _DeepPressCardState extends State<DeepPressCard>
       onTapCancel: _onTapCancel,
       onTap: widget.onTap,
       onLongPress: widget.onLongPress,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: widget.child,
-      ),
+      child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
     );
   }
 }

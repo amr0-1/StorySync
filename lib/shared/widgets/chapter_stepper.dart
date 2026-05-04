@@ -36,7 +36,10 @@ class ChapterStepper extends StatelessWidget {
     return Column(
       children: [
         // Label
-        Text('CURRENT CHAPTER', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
+        Text(
+          'CURRENT CHAPTER',
+          style: AppTextStyles.overline.copyWith(color: colors.textHint),
+        ),
         const SizedBox(height: AppDimensions.space12),
 
         // Stepper controls
@@ -75,11 +78,18 @@ class ChapterStepper extends StatelessWidget {
                   child: Text(
                     '$currentChapter',
                     key: ValueKey<int>(currentChapter),
-                    style: AppTextStyles.monoLarge.copyWith(color: colors.textPrimary),
+                    style: AppTextStyles.monoLarge.copyWith(
+                      color: colors.textPrimary,
+                    ),
                   ),
                 ),
                 if (totalChapters != null)
-                  Text('/  $totalChapters', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
+                  Text(
+                    '/  $totalChapters',
+                    style: AppTextStyles.overline.copyWith(
+                      color: colors.textHint,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(width: 20),
@@ -107,11 +117,18 @@ class ChapterStepper extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('REMAINING', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
+                    Text(
+                      'REMAINING',
+                      style: AppTextStyles.overline.copyWith(
+                        color: colors.textHint,
+                      ),
+                    ),
                     const SizedBox(height: AppDimensions.space4),
                     Text(
                       remaining != null ? '$remaining' : '—',
-                      style: AppTextStyles.monoMedium.copyWith(color: colors.textPrimary),
+                      style: AppTextStyles.monoMedium.copyWith(
+                        color: colors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -130,7 +147,12 @@ class ChapterStepper extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('PROGRESS', style: AppTextStyles.overline.copyWith(color: colors.textHint)),
+                    Text(
+                      'PROGRESS',
+                      style: AppTextStyles.overline.copyWith(
+                        color: colors.textHint,
+                      ),
+                    ),
                     const SizedBox(height: AppDimensions.space4),
                     Text(
                       totalChapters != null ? '$progressPercent%' : '—',
@@ -185,9 +207,9 @@ class _StepperButtonState extends State<_StepperButton> {
       onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
       onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
       onTap: () {
-                StorySyncHaptics.lightTap();
-                widget.onTap?.call();
-              },
+        StorySyncHaptics.lightTap();
+        widget.onTap?.call();
+      },
       child: AnimatedScale(
         scale: _isPressed ? 0.92 : 1.0,
         duration: const Duration(milliseconds: 100),

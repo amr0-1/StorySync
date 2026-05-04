@@ -62,7 +62,10 @@ class LibraryController extends _$LibraryController {
       }
     }
 
-    final result = await _isarService.incrementChapter(mangaDexId, isPastReading: !logToHeatmap);
+    final result = await _isarService.incrementChapter(
+      mangaDexId,
+      isPastReading: !logToHeatmap,
+    );
     if (result) {
       // Fire and forget widget update to prevent blocking UI
       _widgetService.updateWidgetData().ignore();
@@ -81,7 +84,10 @@ class LibraryController extends _$LibraryController {
     // Mark as acknowledged — future increments skip the 50+ guard
     _acknowledgedHighChapterAlerts.add(mangaDexId);
 
-    final result = await _isarService.incrementChapter(mangaDexId, isPastReading: isPastReading);
+    final result = await _isarService.incrementChapter(
+      mangaDexId,
+      isPastReading: isPastReading,
+    );
     if (result) {
       _widgetService.updateWidgetData().ignore();
     }
@@ -175,7 +181,8 @@ class LibraryController extends _$LibraryController {
     // Check streak recovery: streak >7 was broken
     final streaks = engine.calculateStreaks(agg);
     if (engine.detectStreakBreak(agg, streaks)) {
-      final lastShownKey = '${_streakRecoveryKey}_${DateTime.now().toIso8601String().substring(0, 10)}';
+      final lastShownKey =
+          '${_streakRecoveryKey}_${DateTime.now().toIso8601String().substring(0, 10)}';
       final alreadyShown = prefs.getBool(lastShownKey) ?? false;
       if (!alreadyShown) {
         await prefs.setBool(lastShownKey, true);

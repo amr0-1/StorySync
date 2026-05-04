@@ -152,7 +152,10 @@ class MangaDexService {
       final data = response.data as Map<String, dynamic>;
       debugPrint('Aggregate response data keys: ${data.keys}');
 
-      final volumes = data['volumes'] as Map<String, dynamic>? ?? {};
+      final volumesRaw = data['volumes'];
+      final volumes = volumesRaw is Map<String, dynamic>
+          ? volumesRaw
+          : <String, dynamic>{};
       debugPrint('Found ${volumes.length} volumes for manga $mangaDexId');
 
       if (volumes.isEmpty) {
@@ -167,10 +170,15 @@ class MangaDexService {
         final volumeData = volumeEntry.value;
 
         if (volumeData is Map<String, dynamic>) {
-          final volumeChapters =
-              volumeData['chapters'] as Map<String, dynamic>? ?? {};
+          final chaptersRaw = volumeData['chapters'];
+          final volumeChapters = chaptersRaw is Map<String, dynamic>
+              ? chaptersRaw
+              : <String, dynamic>{};
+
           if (volumeChapters.isNotEmpty) {
-            debugPrint('  Volume $volumeKey has ${volumeChapters.length} chapters');
+            debugPrint(
+              '  Volume $volumeKey has ${volumeChapters.length} chapters',
+            );
           }
           chapters.addAll(volumeChapters.keys);
         }

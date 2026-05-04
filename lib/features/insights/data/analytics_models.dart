@@ -2,12 +2,12 @@ import 'package:storysync/features/library/data/models/reading_log.dart';
 
 /// Reading rhythm classification (priority-ordered for personality).
 enum ReadingRhythm {
-  bingeKing,       // 50+ chapters in a single day at least once
-  weekendWarrior,  // ≥60% of activity on Sat/Sun
+  bingeKing, // 50+ chapters in a single day at least once
+  weekendWarrior, // ≥60% of activity on Sat/Sun
   consistentTracker, // Streak ≥ 7 or activity spread ≥ 5 days/week
-  comebackKid,     // Streak broken and resumed within 3 days
-  casualDrifter,   // < 3 active days/week
-  avidReader;      // Fallback
+  comebackKid, // Streak broken and resumed within 3 days
+  casualDrifter, // < 3 active days/week
+  avidReader; // Fallback
 
   String get displayTitle => switch (this) {
     ReadingRhythm.bingeKing => 'The Binge King',
@@ -96,9 +96,9 @@ class TitleStat {
 
 /// Aggregated title analytics.
 class TitleAnalytics {
-  final List<TitleStat> topSeries;   // Top 3 most consumed
-  final List<TitleStat> coldSeries;  // >14 days no activity
-  final List<TitleStat> hotSeries;   // >15 chapters in a 24h window
+  final List<TitleStat> topSeries; // Top 3 most consumed
+  final List<TitleStat> coldSeries; // >14 days no activity
+  final List<TitleStat> hotSeries; // >15 chapters in a 24h window
 
   const TitleAnalytics({
     required this.topSeries,
@@ -106,7 +106,11 @@ class TitleAnalytics {
     required this.hotSeries,
   });
 
-  static const empty = TitleAnalytics(topSeries: [], coldSeries: [], hotSeries: []);
+  static const empty = TitleAnalytics(
+    topSeries: [],
+    coldSeries: [],
+    hotSeries: [],
+  );
 }
 
 /// Detail data for a single tapped day on the heatmap.

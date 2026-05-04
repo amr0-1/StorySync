@@ -29,105 +29,113 @@ class AppRouter {
           ),
         ),
 
-      // Main app shell with tab navigation
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return AppShell(navigationShell: navigationShell);
-        },
-        branches: [
-          // Library branch
-          StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(),
-            routes: [
-              GoRoute(
-                path: '/library',
-                pageBuilder: (context, state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const LibraryScreen(),
-                  transitionDuration: const Duration(milliseconds: 300),
-                  reverseTransitionDuration: const Duration(milliseconds: 250),
-                  transitionsBuilder: _voidInkTransition,
-                ),
-              ),
-            ],
-          ),
-
-          // Insights branch
-          StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(),
-            routes: [
-              GoRoute(
-                path: '/insights',
-                pageBuilder: (context, state) {
-                  final dateStr = state.uri.queryParameters['date'];
-                  DateTime? initialDate;
-                  if (dateStr != null) {
-                    initialDate = DateTime.tryParse(dateStr);
-                  }
-                  return CustomTransitionPage(
+        // Main app shell with tab navigation
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return AppShell(navigationShell: navigationShell);
+          },
+          branches: [
+            // Library branch
+            StatefulShellBranch(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              routes: [
+                GoRoute(
+                  path: '/library',
+                  pageBuilder: (context, state) => CustomTransitionPage(
                     key: state.pageKey,
-                    child: InsightsScreen(initialDate: initialDate),
+                    child: const LibraryScreen(),
                     transitionDuration: const Duration(milliseconds: 300),
-                    reverseTransitionDuration: const Duration(milliseconds: 250),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 250,
+                    ),
                     transitionsBuilder: _voidInkTransition,
-                  );
-                },
-              ),
-            ],
-          ),
-
-          // Discover branch
-          StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(),
-            routes: [
-              GoRoute(
-                path: '/discover',
-                pageBuilder: (context, state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const DiscoverScreen(),
-                  transitionDuration: const Duration(milliseconds: 300),
-                  reverseTransitionDuration: const Duration(milliseconds: 250),
-                  transitionsBuilder: _voidInkTransition,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          // Settings branch
-          StatefulShellBranch(
-            navigatorKey: GlobalKey<NavigatorState>(),
-            routes: [
-              GoRoute(
-                path: '/settings',
-                pageBuilder: (context, state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const SettingsScreen(),
-                  transitionDuration: const Duration(milliseconds: 300),
-                  reverseTransitionDuration: const Duration(milliseconds: 250),
-                  transitionsBuilder: _voidInkTransition,
+            // Insights branch
+            StatefulShellBranch(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              routes: [
+                GoRoute(
+                  path: '/insights',
+                  pageBuilder: (context, state) {
+                    final dateStr = state.uri.queryParameters['date'];
+                    DateTime? initialDate;
+                    if (dateStr != null) {
+                      initialDate = DateTime.tryParse(dateStr);
+                    }
+                    return CustomTransitionPage(
+                      key: state.pageKey,
+                      child: InsightsScreen(initialDate: initialDate),
+                      transitionDuration: const Duration(milliseconds: 300),
+                      reverseTransitionDuration: const Duration(
+                        milliseconds: 250,
+                      ),
+                      transitionsBuilder: _voidInkTransition,
+                    );
+                  },
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
 
-      // Details route (outside shell, full screen) with custom transition
-      GoRoute(
-        path: '/details/:id',
-        parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) {
-          final mangaId = state.pathParameters['id'] ?? '';
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: DetailsScreen(mangaId: mangaId),
-            transitionDuration: const Duration(milliseconds: 350),
-            reverseTransitionDuration: const Duration(milliseconds: 300),
-            transitionsBuilder: _voidInkTransition,
-          );
-        },
-      ),
-    ],
+            // Discover branch
+            StatefulShellBranch(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              routes: [
+                GoRoute(
+                  path: '/discover',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const DiscoverScreen(),
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 250,
+                    ),
+                    transitionsBuilder: _voidInkTransition,
+                  ),
+                ),
+              ],
+            ),
+
+            // Settings branch
+            StatefulShellBranch(
+              navigatorKey: GlobalKey<NavigatorState>(),
+              routes: [
+                GoRoute(
+                  path: '/settings',
+                  pageBuilder: (context, state) => CustomTransitionPage(
+                    key: state.pageKey,
+                    child: const SettingsScreen(),
+                    transitionDuration: const Duration(milliseconds: 300),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 250,
+                    ),
+                    transitionsBuilder: _voidInkTransition,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Details route (outside shell, full screen) with custom transition
+        GoRoute(
+          path: '/details/:id',
+          parentNavigatorKey: _rootNavigatorKey,
+          pageBuilder: (context, state) {
+            final mangaId = state.pathParameters['id'] ?? '';
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: DetailsScreen(mangaId: mangaId),
+              transitionDuration: const Duration(milliseconds: 350),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
+              transitionsBuilder: _voidInkTransition,
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -147,19 +155,11 @@ class AppRouter {
     final slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.05),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
 
     return FadeTransition(
       opacity: fadeAnimation,
-      child: SlideTransition(
-        position: slideAnimation,
-        child: child,
-      ),
+      child: SlideTransition(position: slideAnimation, child: child),
     );
   }
 }

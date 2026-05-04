@@ -16,7 +16,8 @@ import 'package:storysync/shared/widgets/status_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 import 'package:storysync/features/details/presentation/controllers/palette_controller.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart' as org_flutter_cache_manager;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'
+    as org_flutter_cache_manager;
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -248,9 +249,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           backgroundColor: colors.inkSurface,
           title: Text(
             'Reading History Found',
-            style: AppTextStyles.titleLarge.copyWith(
-              color: colors.textPrimary,
-            ),
+            style: AppTextStyles.titleLarge.copyWith(color: colors.textPrimary),
           ),
           content: Text(
             'This title has $logCount reading log${logCount == 1 ? '' : 's'}. '
@@ -335,10 +334,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           actions: [
             TextButton(
               onPressed: () => ctx.pop(false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: colors.textHint),
-              ),
+              child: Text('Cancel', style: TextStyle(color: colors.textHint)),
             ),
             TextButton(
               onPressed: () => ctx.pop(true),
@@ -576,23 +572,12 @@ class _HeroHeader extends StatelessWidget {
                   colors.inkVoid.withValues(alpha: 0.6),
                   BlendMode.darken,
                 ),
-                child: FutureBuilder<org_flutter_cache_manager.FileInfo?>(
-                  future: CustomCacheManager.instance.getFileFromCache(manga.coverUrl!),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data?.file != null) {
-                      return Image.file(
-                        snapshot.data!.file,
-                        fit: BoxFit.cover,
-                      );
-                    }
-                    return CachedNetworkImage(
-                      imageUrl: manga.coverUrl!,
-                      fit: BoxFit.cover,
-                      cacheManager: CustomCacheManager.instance,
-                      errorWidget: (context, url, error) =>
-                          Container(color: colors.inkPanel),
-                    );
-                  },
+                child: CachedNetworkImage(
+                  imageUrl: manga.coverUrl!,
+                  fit: BoxFit.cover,
+                  cacheManager: CustomCacheManager.instance,
+                  errorWidget: (context, url, error) =>
+                      Container(color: colors.inkPanel),
                 ),
               ),
             )
@@ -658,30 +643,19 @@ class _HeroHeader extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
                   child: manga.coverUrl != null
-                      ? FutureBuilder<org_flutter_cache_manager.FileInfo?>(
-                          future: CustomCacheManager.instance.getFileFromCache(manga.coverUrl!),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData && snapshot.data?.file != null) {
-                              return Image.file(
-                                snapshot.data!.file,
-                                fit: BoxFit.cover,
-                              );
+                      ? CachedNetworkImage(
+                          imageUrl: manga.coverUrl!,
+                          fit: BoxFit.cover,
+                          cacheManager: CustomCacheManager.instance,
+                          errorWidget: (context, url, error) =>
+                              _CoverPlaceholder(colors: colors),
+                          progressIndicatorBuilder: (context, url, progress) {
+                            if (progress.progress == null) {
+                              return _CoverPlaceholder(colors: colors);
                             }
-                            return CachedNetworkImage(
-                              imageUrl: manga.coverUrl!,
-                              fit: BoxFit.cover,
-                              cacheManager: CustomCacheManager.instance,
-                              errorWidget: (context, url, error) =>
-                                  _CoverPlaceholder(colors: colors),
-                              progressIndicatorBuilder: (context, url, progress) {
-                                if (progress.progress == null) {
-                                  return _CoverPlaceholder(colors: colors);
-                                }
-                                return _CoverPlaceholder(
-                                  colors: colors,
-                                  showLoading: true,
-                                );
-                              },
+                            return _CoverPlaceholder(
+                              colors: colors,
+                              showLoading: true,
                             );
                           },
                         )

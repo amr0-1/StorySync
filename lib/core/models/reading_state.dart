@@ -11,5 +11,5 @@ enum ReadingState {
 
   /// Intense reading: ≥ 15 chapters in 24h OR ≥ 40 chapters in 3 days.
   /// Hot overrides Cold.
-  hot;
+  hot,
 }

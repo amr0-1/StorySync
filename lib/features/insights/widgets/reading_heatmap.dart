@@ -114,10 +114,7 @@ class _WeeklySummaryBar extends StatelessWidget {
   final Map<DateTime, int> dailyTotals;
   final VoidInkColors colors;
 
-  const _WeeklySummaryBar({
-    required this.dailyTotals,
-    required this.colors,
-  });
+  const _WeeklySummaryBar({required this.dailyTotals, required this.colors});
 
   @override
   Widget build(BuildContext context) {
@@ -184,8 +181,9 @@ class _WeeklySummaryBar extends StatelessWidget {
                     ? (dailyValues[i] / maxValue).clamp(0.0, 1.0)
                     : 0.0;
                 final isToday = i == today.weekday - 1;
-                final isFuture =
-                    startOfWeek.add(Duration(days: i)).isAfter(today);
+                final isFuture = startOfWeek
+                    .add(Duration(days: i))
+                    .isAfter(today);
 
                 return Expanded(
                   child: Padding(
@@ -197,16 +195,16 @@ class _WeeklySummaryBar extends StatelessWidget {
                         height: isFuture
                             ? 2
                             : normalizedHeight > 0
-                                ? (normalizedHeight * 28).clamp(4.0, 32.0)
-                                : 2,
+                            ? (normalizedHeight * 28).clamp(4.0, 32.0)
+                            : 2,
                         decoration: BoxDecoration(
                           color: isFuture
                               ? colors.inkPanel
                               : isToday
-                                  ? colors.goldSpark
-                                  : dailyValues[i] > 0
-                                      ? colors.goldSpark.withValues(alpha: 0.5)
-                                      : colors.inkMuted.withValues(alpha: 0.3),
+                              ? colors.goldSpark
+                              : dailyValues[i] > 0
+                              ? colors.goldSpark.withValues(alpha: 0.5)
+                              : colors.inkMuted.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -317,8 +315,7 @@ class _HeatmapGrid extends StatelessWidget {
             ...List.generate(weeksCount, (weekIdx) {
               return Column(
                 children: List.generate(7, (dayIdx) {
-                  final date = _getDateForCell(
-                      startDate, weekIdx, dayIdx);
+                  final date = _getDateForCell(startDate, weekIdx, dayIdx);
                   if (date == null || date.isAfter(today)) {
                     return _emptyCell();
                   }
@@ -340,8 +337,9 @@ class _HeatmapGrid extends StatelessWidget {
 
   DateTime? _getDateForCell(DateTime startDate, int weekIdx, int dayIdx) {
     // Align to Monday
-    final firstMonday =
-        startDate.subtract(Duration(days: (startDate.weekday - 1) % 7));
+    final firstMonday = startDate.subtract(
+      Duration(days: (startDate.weekday - 1) % 7),
+    );
     final date = firstMonday.add(Duration(days: weekIdx * 7 + dayIdx));
     if (date.isBefore(startDate)) return null;
     return DateTime(date.year, date.month, date.day);
@@ -350,15 +348,28 @@ class _HeatmapGrid extends StatelessWidget {
   Map<int, String> _buildMonthLabels(DateTime start, DateTime end) {
     final labels = <int, String>{};
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
 
     int? lastMonth;
-    final firstMonday =
-        start.subtract(Duration(days: (start.weekday - 1) % 7));
+    final firstMonday = start.subtract(Duration(days: (start.weekday - 1) % 7));
 
-    for (int week = 0; week <= (end.difference(start).inDays / 7).ceil() + 1; week++) {
+    for (
+      int week = 0;
+      week <= (end.difference(start).inDays / 7).ceil() + 1;
+      week++
+    ) {
       final weekStart = firstMonday.add(Duration(days: week * 7));
       if (weekStart.month != lastMonth) {
         labels[week] = months[weekStart.month - 1];

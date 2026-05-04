@@ -29,8 +29,15 @@ Future<AnalyticsSnapshot> _computeSnapshot(_ComputePayload payload) async {
   final rhythm = engine.detectRhythm(agg, streaks);
   final velocity = engine.calculateVelocity(agg);
   final titleAnalytics = engine.getTitleAnalytics(agg, payload.manga);
-  final insights = engine.generateInsights(agg, streaks, velocity, titleAnalytics);
-  final (personalityTitle, personalitySubtitle) = engine.derivePersonality(rhythm);
+  final insights = engine.generateInsights(
+    agg,
+    streaks,
+    velocity,
+    titleAnalytics,
+  );
+  final (personalityTitle, personalitySubtitle) = engine.derivePersonality(
+    rhythm,
+  );
 
   final totalChapters = agg.dailyTotals.values.fold<int>(0, (a, b) => a + b);
 
@@ -60,8 +67,7 @@ final analyticsSnapshotProvider = StreamProvider<AnalyticsSnapshot>((ref) {
   final isarService = ref.watch(isarServiceProvider);
 
   // Combine both streams — fires when EITHER collection changes
-  return Rx.combineLatest2<List<ReadingLog>, List<MangaItem>,
-      _ComputePayload>(
+  return Rx.combineLatest2<List<ReadingLog>, List<MangaItem>, _ComputePayload>(
     isarService.watchAllReadingLogs(),
     isarService.watchAllManga(),
     (logs, manga) => _ComputePayload(logs, manga),
@@ -71,7 +77,10 @@ final analyticsSnapshotProvider = StreamProvider<AnalyticsSnapshot>((ref) {
 });
 
 /// Provider for day-detail data (triggered by heatmap tap).
-final dayDetailProvider = FutureProvider.family<DayDetail, DateTime>((ref, date) async {
+final dayDetailProvider = FutureProvider.family<DayDetail, DateTime>((
+  ref,
+  date,
+) async {
   final isarService = ref.watch(isarServiceProvider);
   final engine = ref.watch(analyticsEngineProvider);
 

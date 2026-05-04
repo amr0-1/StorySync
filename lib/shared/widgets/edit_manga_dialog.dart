@@ -95,7 +95,7 @@ class _EditMangaDialogState extends State<EditMangaDialog> {
     if (_formKey.currentState?.validate() ?? false) {
       final coverUrl = _coverUrlController.text.trim();
 
-      if (coverUrl.isNotEmpty) {
+      if (coverUrl.isNotEmpty && coverUrl != widget.manga.coverUrl) {
         final isValid = await _validateImageUrl(coverUrl);
 
         if (!mounted) return;

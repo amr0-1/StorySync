@@ -50,7 +50,6 @@ class MangaItem {
   /// Timestamp of last update to this record
   DateTime lastUpdated = DateTime.now();
 
-
   /// Default constructor
   MangaItem();
 
@@ -67,7 +66,6 @@ class MangaItem {
     this.source = 'mangadex',
     this.hasCustomMetadata = false,
   }) : lastUpdated = DateTime.now();
-
 
   /// Calculate reading progress as percentage (0.0 to 1.0)
   double get progress {
@@ -118,26 +116,26 @@ class MangaItem {
 
   factory MangaItem.fromJson(Map<String, dynamic> json) {
     return MangaItem.create(
-      mangaDexId: json['mangaDexId'] as String,
-      title: json['title'] as String,
-      author: json['author'] as String?,
-      coverUrl: json['coverUrl'] as String?,
-      synopsis: json['synopsis'] as String?,
-      readingStatus: ReadingStatus.values.firstWhere(
-        (e) => e.name == json['readingStatus'],
-        orElse: () => ReadingStatus.planToRead,
-      ),
-      chapterProgress: json['chapterProgress'] as int? ?? 0,
-      totalChapters: json['totalChapters'] as int?,
-      source: json['source'] as String? ?? 'mangadex',
-      hasCustomMetadata: json['hasCustomMetadata'] as bool? ?? false,
-    )..lastUpdated = json['lastUpdated'] != null 
-        ? DateTime.parse(json['lastUpdated'] as String) 
-        : DateTime.now();
+        mangaDexId: json['mangaDexId'] as String,
+        title: json['title'] as String,
+        author: json['author'] as String?,
+        coverUrl: json['coverUrl'] as String?,
+        synopsis: json['synopsis'] as String?,
+        readingStatus: ReadingStatus.values.firstWhere(
+          (e) => e.name == json['readingStatus'],
+          orElse: () => ReadingStatus.planToRead,
+        ),
+        chapterProgress: json['chapterProgress'] as int? ?? 0,
+        totalChapters: json['totalChapters'] as int?,
+        source: json['source'] as String? ?? 'mangadex',
+        hasCustomMetadata: json['hasCustomMetadata'] as bool? ?? false,
+      )
+      ..lastUpdated = json['lastUpdated'] != null
+          ? DateTime.parse(json['lastUpdated'] as String)
+          : DateTime.now();
   }
 
   @override
   String toString() =>
       'MangaItem(id: $id, title: $title, progress: $chapterProgress/$totalChapters)';
-
 }

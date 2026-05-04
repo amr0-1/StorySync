@@ -161,9 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text(
               label,
               style: AppTextStyles.labelMedium.copyWith(
-                color: isSelected
-                    ? colors.inkVoid
-                    : colors.textSecondary,
+                color: isSelected ? colors.inkVoid : colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

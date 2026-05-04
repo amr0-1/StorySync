@@ -121,11 +121,17 @@ class IsarService {
   /// was not found.
   ///
   /// Respects [totalChapters] if set - won't increment beyond total.
-  Future<bool> incrementChapter(String mangaDexId, {bool isPastReading = false}) async {
+  Future<bool> incrementChapter(
+    String mangaDexId, {
+    bool isPastReading = false,
+  }) async {
     final isar = await _db;
-    
+
     return isar.writeTxn(() async {
-      final manga = await isar.mangaItems.filter().mangaDexIdEqualTo(mangaDexId).findFirst();
+      final manga = await isar.mangaItems
+          .filter()
+          .mangaDexIdEqualTo(mangaDexId)
+          .findFirst();
 
       if (manga == null) return false;
 
@@ -151,7 +157,11 @@ class IsarService {
             .findFirst();
 
         if (log == null) {
-          log = ReadingLog.create(date: logDate, mangaDexId: mangaDexId, chaptersRead: 1);
+          log = ReadingLog.create(
+            date: logDate,
+            mangaDexId: mangaDexId,
+            chaptersRead: 1,
+          );
         } else {
           log.chaptersRead++;
         }
@@ -182,24 +192,24 @@ class IsarService {
     return true;
   }
 
-/// Updates the reading status of a manga.
-///
-/// Returns `true` if successful, `false` if manga not found.
-///
-/// When status is set to [ReadingStatus.completed], automatically sets
-/// [chapterProgress] to [totalChapters] if [totalChapters] is known.
-Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
+  /// Updates the reading status of a manga.
+  ///
+  /// Returns `true` if successful, `false` if manga not found.
+  ///
+  /// When status is set to [ReadingStatus.completed], automatically sets
+  /// [chapterProgress] to [totalChapters] if [totalChapters] is known.
+  Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
     final isar = await _db;
     final manga = await getMangaByMangaDexId(mangaDexId);
 
     if (manga == null) return false;
 
     manga.readingStatus = status;
-    
+
     if (status == ReadingStatus.completed && manga.totalChapters != null) {
       manga.chapterProgress = manga.totalChapters!;
     }
-    
+
     manga.lastUpdated = DateTime.now();
 
     await isar.writeTxn(() async {
@@ -228,10 +238,7 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
   /// Used by the delete guard dialog to determine if orphaned logs exist.
   Future<int> getReadingLogCountForManga(String mangaDexId) async {
     final isar = await _db;
-    return isar.readingLogs
-        .filter()
-        .mangaDexIdEqualTo(mangaDexId)
-        .count();
+    return isar.readingLogs.filter().mangaDexIdEqualTo(mangaDexId).count();
   }
 
   /// Atomically deletes a manga AND all its associated reading logs.
@@ -247,10 +254,7 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
 
     return isar.writeTxn(() async {
       // Cascade-delete all reading logs for this title
-      await isar.readingLogs
-          .filter()
-          .mangaDexIdEqualTo(mangaDexId)
-          .deleteAll();
+      await isar.readingLogs.filter().mangaDexIdEqualTo(mangaDexId).deleteAll();
       // Then delete the manga item itself
       return isar.mangaItems.delete(manga.id);
     });
@@ -318,7 +322,10 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
   /// [isPastReading] guard to prevent historical bulk imports from
   /// polluting the analytics heatmap.
   @Deprecated('Use incrementChapter() which has the isPastReading guard')
-  Future<void> logChapterRead(String mangaDexId, {bool isImport = false}) async {
+  Future<void> logChapterRead(
+    String mangaDexId, {
+    bool isImport = false,
+  }) async {
     final isar = await _db;
     final today = DateTime.now();
     final normalizedDate = DateTime(today.year, today.month, today.day);
@@ -363,7 +370,10 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
   }
 
   /// Gets all reading logs for a date range.
-  Future<List<ReadingLog>> getReadingLogsInRange(DateTime start, DateTime end) async {
+  Future<List<ReadingLog>> getReadingLogsInRange(
+    DateTime start,
+    DateTime end,
+  ) async {
     final isar = await _db;
     final normalizedStart = DateTime(start.year, start.month, start.day);
     final normalizedEnd = DateTime(end.year, end.month, end.day);
@@ -425,9 +435,9 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
   ) async {
     final isar = await _db;
     int count = 0;
-    final validLogs = logs.where(
-      (log) => validMangaDexIds.contains(log.mangaDexId),
-    ).toList();
+    final validLogs = logs
+        .where((log) => validMangaDexIds.contains(log.mangaDexId))
+        .toList();
 
     if (validLogs.isEmpty) return 0;
 
@@ -442,10 +452,7 @@ Future<bool> updateStatus(String mangaDexId, ReadingStatus status) async {
   Future<List<ReadingLog>> getLogsForDate(DateTime date) async {
     final isar = await _db;
     final normalizedDate = DateTime(date.year, date.month, date.day);
-    return isar.readingLogs
-        .filter()
-        .dateEqualTo(normalizedDate)
-        .findAll();
+    return isar.readingLogs.filter().dateEqualTo(normalizedDate).findAll();
   }
 
   /// Clears all reading logs.

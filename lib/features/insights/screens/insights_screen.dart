@@ -32,7 +32,10 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             backgroundColor: Colors.transparent,
             isScrollControlled: true,
             builder: (sheetContext) {
-              return _DayDetailBottomSheet(date: widget.initialDate!, colors: colors);
+              return _DayDetailBottomSheet(
+                date: widget.initialDate!,
+                colors: colors,
+              );
             },
           );
         }
@@ -77,7 +80,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, color: colors.statusDropped, size: 32),
+                Icon(
+                  Icons.error_outline,
+                  color: colors.statusDropped,
+                  size: 32,
+                ),
                 const SizedBox(height: AppDimensions.space12),
                 Text(
                   'Failed to load insights',
@@ -356,11 +363,7 @@ class _TitleAnalyticsSection extends StatelessWidget {
           ...titleAnalytics.topSeries.asMap().entries.map((entry) {
             final rank = entry.key + 1;
             final stat = entry.value;
-            return _TitleStatTile(
-              rank: rank,
-              stat: stat,
-              colors: colors,
-            );
+            return _TitleStatTile(rank: rank, stat: stat, colors: colors);
           }),
         ],
         // Cold series
@@ -625,18 +628,25 @@ class _DayDetailBottomSheet extends ConsumerWidget {
   final DateTime date;
   final VoidInkColors colors;
 
-  const _DayDetailBottomSheet({
-    required this.date,
-    required this.colors,
-  });
+  const _DayDetailBottomSheet({required this.date, required this.colors});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dayDetailAsync = ref.watch(dayDetailProvider(date));
 
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final dateStr = '${months[date.month - 1]} ${date.day}, ${date.year}';
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -700,8 +710,7 @@ class _DayDetailBottomSheet extends ConsumerWidget {
               padding: const EdgeInsets.all(AppDimensions.space24),
               child: Center(
                 child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(colors.goldSpark),
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
                   strokeWidth: 2,
                 ),
               ),

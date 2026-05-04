@@ -74,10 +74,7 @@ class _InsightCardsState extends State<InsightCards> {
               setState(() => _currentPage = index);
             },
             itemBuilder: (context, index) {
-              return _InsightCard(
-                text: widget.insights[index],
-                colors: colors,
-              );
+              return _InsightCard(text: widget.insights[index], colors: colors);
             },
           ),
         ),
@@ -163,10 +160,7 @@ class _InsightCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            emoji,
-            style: const TextStyle(fontSize: 24),
-          ),
+          Text(emoji, style: const TextStyle(fontSize: 24)),
           const SizedBox(width: AppDimensions.space12),
           Expanded(
             child: Text(

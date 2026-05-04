@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 /// Text('Hello', style: AppTextStyles.titleMedium.copyWith(color: colors.textPrimary));
 /// ```
 abstract class AppTextStyles {
-
   // ── Display (Cormorant Garamond) ────────────────────────────
   static const TextStyle displayLarge = TextStyle(
     fontFamily: 'CormorantGaramond',

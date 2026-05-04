@@ -196,7 +196,11 @@ class _LibraryContentWrapper extends ConsumerWidget {
       child: asyncMangaList.when(
         data: (items) {
           if (items.isEmpty) {
-            return _EmptyState(key: const ValueKey('empty'), status: status, colors: colors);
+            return _EmptyState(
+              key: const ValueKey('empty'),
+              status: status,
+              colors: colors,
+            );
           }
 
           return ValueListenableBuilder<bool>(
@@ -232,7 +236,8 @@ class _LibraryContentWrapper extends ConsumerWidget {
             },
           );
         },
-        loading: () => _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
+        loading: () =>
+            _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
         error: (error, stack) => _ErrorState(
           key: const ValueKey('error'),
           error: error.toString(),
@@ -509,7 +514,8 @@ class _GridViewList extends StatelessWidget {
           itemCount: items.length,
           itemBuilder: (context, index) {
             final MangaItem manga = items[index];
-            final state = readingStates[manga.mangaDexId] ?? ReadingState.normal;
+            final state =
+                readingStates[manga.mangaDexId] ?? ReadingState.normal;
             // Resume highlight: first item (most recently updated) on reading tab
             final showResume = index == 0 && readingStates.isNotEmpty;
 

@@ -67,21 +67,15 @@ class LibraryByStatusFamily extends Family<AsyncValue<List<MangaItem>>> {
   /// ```
   ///
   /// Copied from [libraryByStatus].
-  LibraryByStatusProvider call(
-    ReadingStatus status,
-  ) {
-    return LibraryByStatusProvider(
-      status,
-    );
+  LibraryByStatusProvider call(ReadingStatus status) {
+    return LibraryByStatusProvider(status);
   }
 
   @override
   LibraryByStatusProvider getProviderOverride(
     covariant LibraryByStatusProvider provider,
   ) {
-    return call(
-      provider.status,
-    );
+    return call(provider.status);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -117,24 +111,19 @@ class LibraryByStatusProvider
   /// ```
   ///
   /// Copied from [libraryByStatus].
-  LibraryByStatusProvider(
-    ReadingStatus status,
-  ) : this._internal(
-          (ref) => libraryByStatus(
-            ref as LibraryByStatusRef,
-            status,
-          ),
-          from: libraryByStatusProvider,
-          name: r'libraryByStatusProvider',
-          debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$libraryByStatusHash,
-          dependencies: LibraryByStatusFamily._dependencies,
-          allTransitiveDependencies:
-              LibraryByStatusFamily._allTransitiveDependencies,
-          status: status,
-        );
+  LibraryByStatusProvider(ReadingStatus status)
+    : this._internal(
+        (ref) => libraryByStatus(ref as LibraryByStatusRef, status),
+        from: libraryByStatusProvider,
+        name: r'libraryByStatusProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$libraryByStatusHash,
+        dependencies: LibraryByStatusFamily._dependencies,
+        allTransitiveDependencies:
+            LibraryByStatusFamily._allTransitiveDependencies,
+        status: status,
+      );
 
   LibraryByStatusProvider._internal(
     super._createNotifier, {
@@ -208,16 +197,19 @@ String _$libraryControllerHash() => r'cc823372e08f9295bcc4f2e2c2dc67fa46e31222';
 ///
 /// Copied from [LibraryController].
 @ProviderFor(LibraryController)
-final libraryControllerProvider = AutoDisposeStreamNotifierProvider<
-    LibraryController, List<MangaItem>>.internal(
-  LibraryController.new,
-  name: r'libraryControllerProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$libraryControllerHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final libraryControllerProvider =
+    AutoDisposeStreamNotifierProvider<
+      LibraryController,
+      List<MangaItem>
+    >.internal(
+      LibraryController.new,
+      name: r'libraryControllerProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$libraryControllerHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$LibraryController = AutoDisposeStreamNotifier<List<MangaItem>>;
 // ignore_for_file: type=lint
