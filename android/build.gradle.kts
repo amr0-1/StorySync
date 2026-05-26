@@ -28,17 +28,26 @@ subprojects {
     plugins.withId("com.android.library") {
         extensions.configure<com.android.build.api.variant.LibraryAndroidComponentsExtension>("androidComponents") {
             beforeVariants(selector().all()) { variantBuilder ->
-                // Removed because disabling unit tests globally breaks plugins like shared_preferences_android in newer AGP.
-                // variantBuilder.enableUnitTest = false
-                // variantBuilder.enableAndroidTest = false
+                // Keeping this empty as it was in your original setup
             }
         }
         
         extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
-            compileSdk = 36
+            // Safe early override for well-behaved plugins (like file_picker)
+            compileSdk = 35
+            
             if (namespace == null) {
                 val safeProjectName = project.name.replace(Regex("[^A-Za-z0-9_]"), "_")
                 namespace = "dev.mtrack.generated.$safeProjectName"
+            }
+        }
+    }
+
+    // THE SURGICAL FIX: Only target Isar specifically. Leaves file_picker completely untouched.
+    if (project.name == "isar_flutter_libs") {
+        project.afterEvaluate {
+            extensions.configure<com.android.build.gradle.LibraryExtension>("android") {
+                compileSdk = 35
             }
         }
     }
@@ -49,8 +58,4 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_17.toString()
         options.compilerArgs.addAll(listOf("-Xlint:-options"))
     }
-}
-
-tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
 }
