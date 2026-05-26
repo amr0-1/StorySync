@@ -78,6 +78,15 @@ StorySync refuses legacy tech debt. The architecture revolves strictly around th
 - **GoRouter:** Clean, URI-declarative pathing utilizing `StatefulShellRoute` context trees for fluid view persistence.
 - **Isar NoSQL:** Multi-threaded asynchronous queries directly off the UI thread pushing read logs to complex computation endpoints using `compute()` isolate abstractions.
 
+## ⚠ Current Development Status
+
+StorySync is under active development by a solo developer.  
+Most core systems are stable and production-ready, though a few minor issues related to native iOS/Android home screen widgets are still being refined.
+
+Because widget integrations rely heavily on platform-specific native behavior, resolving these edge cases has taken longer than initially anticipated. Stability, performance, and long-term maintainability are being prioritized over rushed fixes.
+
+Core application functionality, tracking systems, analytics, and local database operations remain fully functional and actively maintained.
+
 ## 🤝 Contributing
 
 We love contributions! Be sure to submit PRs focusing on architectural fluidity and design token (`AppDimensions`/`VoidInkColors`) usage rather than raw hardcoded modifications. Read the complete `VOID_INK_PLAN.md` specification prior to executing massive migrations.
