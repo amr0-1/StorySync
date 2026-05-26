@@ -22,27 +22,41 @@ const ReadingLogSchema = CollectionSchema(
       name: r'chaptersRead',
       type: IsarType.long,
     ),
-    r'date': PropertySchema(id: 1, name: r'date', type: IsarType.dateTime),
-    r'isImported': PropertySchema(
+    r'date': PropertySchema(
+      id: 1,
+      name: r'date',
+      type: IsarType.dateTime,
+    ),
+    r'exactTimestamp': PropertySchema(
       id: 2,
+      name: r'exactTimestamp',
+      type: IsarType.dateTime,
+    ),
+    r'isImported': PropertySchema(
+      id: 3,
       name: r'isImported',
       type: IsarType.bool,
     ),
     r'isPastReading': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'isPastReading',
       type: IsarType.bool,
     ),
     r'mangaDexId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'mangaDexId',
       type: IsarType.string,
     ),
-    r'sessionId': PropertySchema(
-      id: 5,
-      name: r'sessionId',
+    r'sessionDurationMinutes': PropertySchema(
+      id: 6,
+      name: r'sessionDurationMinutes',
       type: IsarType.long,
     ),
+    r'sessionId': PropertySchema(
+      id: 7,
+      name: r'sessionId',
+      type: IsarType.long,
+    )
   },
   estimateSize: _readingLogEstimateSize,
   serialize: _readingLogSerialize,
@@ -60,7 +74,7 @@ const ReadingLogSchema = CollectionSchema(
           name: r'date',
           type: IndexType.value,
           caseSensitive: false,
-        ),
+        )
       ],
     ),
     r'mangaDexId': IndexSchema(
@@ -73,9 +87,9 @@ const ReadingLogSchema = CollectionSchema(
           name: r'mangaDexId',
           type: IndexType.hash,
           caseSensitive: true,
-        ),
+        )
       ],
-    ),
+    )
   },
   links: {},
   embeddedSchemas: {},
@@ -103,10 +117,12 @@ void _readingLogSerialize(
 ) {
   writer.writeLong(offsets[0], object.chaptersRead);
   writer.writeDateTime(offsets[1], object.date);
-  writer.writeBool(offsets[2], object.isImported);
-  writer.writeBool(offsets[3], object.isPastReading);
-  writer.writeString(offsets[4], object.mangaDexId);
-  writer.writeLong(offsets[5], object.sessionId);
+  writer.writeDateTime(offsets[2], object.exactTimestamp);
+  writer.writeBool(offsets[3], object.isImported);
+  writer.writeBool(offsets[4], object.isPastReading);
+  writer.writeString(offsets[5], object.mangaDexId);
+  writer.writeLong(offsets[6], object.sessionDurationMinutes);
+  writer.writeLong(offsets[7], object.sessionId);
 }
 
 ReadingLog _readingLogDeserialize(
@@ -118,11 +134,13 @@ ReadingLog _readingLogDeserialize(
   final object = ReadingLog();
   object.chaptersRead = reader.readLong(offsets[0]);
   object.date = reader.readDateTime(offsets[1]);
+  object.exactTimestamp = reader.readDateTimeOrNull(offsets[2]);
   object.id = id;
-  object.isImported = reader.readBool(offsets[2]);
-  object.isPastReading = reader.readBool(offsets[3]);
-  object.mangaDexId = reader.readString(offsets[4]);
-  object.sessionId = reader.readLongOrNull(offsets[5]);
+  object.isImported = reader.readBool(offsets[3]);
+  object.isPastReading = reader.readBool(offsets[4]);
+  object.mangaDexId = reader.readString(offsets[5]);
+  object.sessionDurationMinutes = reader.readLong(offsets[6]);
+  object.sessionId = reader.readLongOrNull(offsets[7]);
   return object;
 }
 
@@ -138,12 +156,16 @@ P _readingLogDeserializeProp<P>(
     case 1:
       return (reader.readDateTime(offset)) as P;
     case 2:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readLong(offset)) as P;
+    case 7:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -183,7 +205,10 @@ extension ReadingLogQueryWhere
     on QueryBuilder<ReadingLog, ReadingLog, QWhereClause> {
   QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
     });
   }
 
@@ -209,10 +234,8 @@ extension ReadingLogQueryWhere
     });
   }
 
-  QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> idGreaterThan(
-    Id id, {
-    bool include = false,
-  }) {
+  QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> idGreaterThan(Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -220,10 +243,8 @@ extension ReadingLogQueryWhere
     });
   }
 
-  QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> idLessThan(
-    Id id, {
-    bool include = false,
-  }) {
+  QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> idLessThan(Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -238,67 +259,56 @@ extension ReadingLogQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IdWhereClause.between(
-          lower: lowerId,
-          includeLower: includeLower,
-          upper: upperId,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> dateEqualTo(
-    DateTime date,
-  ) {
+      DateTime date) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'date', value: [date]),
-      );
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'date',
+        value: [date],
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> dateNotEqualTo(
-    DateTime date,
-  ) {
+      DateTime date) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'date',
-                lower: [],
-                upper: [date],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'date',
-                lower: [date],
-                includeLower: false,
-                upper: [],
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [],
+              upper: [date],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [date],
+              includeLower: false,
+              upper: [],
+            ));
       } else {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'date',
-                lower: [date],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'date',
-                lower: [],
-                upper: [date],
-                includeUpper: false,
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [date],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'date',
+              lower: [],
+              upper: [date],
+              includeUpper: false,
+            ));
       }
     });
   }
@@ -308,14 +318,12 @@ extension ReadingLogQueryWhere
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'date',
-          lower: [date],
-          includeLower: include,
-          upper: [],
-        ),
-      );
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [date],
+        includeLower: include,
+        upper: [],
+      ));
     });
   }
 
@@ -324,14 +332,12 @@ extension ReadingLogQueryWhere
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'date',
-          lower: [],
-          upper: [date],
-          includeUpper: include,
-        ),
-      );
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [],
+        upper: [date],
+        includeUpper: include,
+      ));
     });
   }
 
@@ -342,68 +348,57 @@ extension ReadingLogQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'date',
-          lower: [lowerDate],
-          includeLower: includeLower,
-          upper: [upperDate],
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'date',
+        lower: [lowerDate],
+        includeLower: includeLower,
+        upper: [upperDate],
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> mangaDexIdEqualTo(
-    String mangaDexId,
-  ) {
+      String mangaDexId) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'mangaDexId', value: [mangaDexId]),
-      );
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'mangaDexId',
+        value: [mangaDexId],
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterWhereClause> mangaDexIdNotEqualTo(
-    String mangaDexId,
-  ) {
+      String mangaDexId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [],
-                upper: [mangaDexId],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [mangaDexId],
-                includeLower: false,
-                upper: [],
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [],
+              upper: [mangaDexId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [mangaDexId],
+              includeLower: false,
+              upper: [],
+            ));
       } else {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [mangaDexId],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [],
-                upper: [mangaDexId],
-                includeUpper: false,
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [mangaDexId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [],
+              upper: [mangaDexId],
+              includeUpper: false,
+            ));
       }
     });
   }
@@ -412,67 +407,68 @@ extension ReadingLogQueryWhere
 extension ReadingLogQueryFilter
     on QueryBuilder<ReadingLog, ReadingLog, QFilterCondition> {
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  chaptersReadEqualTo(int value) {
+      chaptersReadEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'chaptersRead', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  chaptersReadGreaterThan(int value, {bool include = false}) {
+      chaptersReadGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'chaptersRead',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  chaptersReadLessThan(int value, {bool include = false}) {
+      chaptersReadLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'chaptersRead',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  chaptersReadBetween(
+      chaptersReadBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'chaptersRead',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'chaptersRead',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> dateEqualTo(
-    DateTime value,
-  ) {
+      DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'date', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
@@ -481,13 +477,11 @@ extension ReadingLogQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'date',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
@@ -496,13 +490,11 @@ extension ReadingLogQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'date',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
@@ -513,25 +505,97 @@ extension ReadingLogQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'date',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'date',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'exactTimestamp',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'exactTimestamp',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'exactTimestamp',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'exactTimestamp',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'exactTimestamp',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      exactTimestampBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'exactTimestamp',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> idEqualTo(
-    Id value,
-  ) {
+      Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'id', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -540,13 +604,11 @@ extension ReadingLogQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -555,13 +617,11 @@ extension ReadingLogQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -572,34 +632,33 @@ extension ReadingLogQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'id',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> isImportedEqualTo(
-    bool value,
-  ) {
+      bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isImported', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isImported',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  isPastReadingEqualTo(bool value) {
+      isPastReadingEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isPastReading', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPastReading',
+        value: value,
+      ));
     });
   }
 
@@ -608,49 +667,43 @@ extension ReadingLogQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdGreaterThan(
+      mangaDexIdGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdLessThan(
+      mangaDexIdLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -662,129 +715,183 @@ extension ReadingLogQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'mangaDexId',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mangaDexId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdStartsWith(String value, {bool caseSensitive = true}) {
+      mangaDexIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdEndsWith(String value, {bool caseSensitive = true}) {
+      mangaDexIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdContains(String value, {bool caseSensitive = true}) {
+      mangaDexIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> mangaDexIdMatches(
-    String pattern, {
-    bool caseSensitive = true,
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mangaDexId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      mangaDexIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      mangaDexIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mangaDexId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      sessionDurationMinutesEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sessionDurationMinutes',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
+      sessionDurationMinutesGreaterThan(
+    int value, {
+    bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'mangaDexId',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sessionDurationMinutes',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdIsEmpty() {
+      sessionDurationMinutesLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sessionDurationMinutes',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  mangaDexIdIsNotEmpty() {
+      sessionDurationMinutesBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sessionDurationMinutes',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  sessionIdIsNull() {
+      sessionIdIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'sessionId'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sessionId',
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  sessionIdIsNotNull() {
+      sessionIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'sessionId'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sessionId',
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition> sessionIdEqualTo(
-    int? value,
-  ) {
+      int? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'sessionId', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sessionId',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLog, ReadingLog, QAfterFilterCondition>
-  sessionIdGreaterThan(int? value, {bool include = false}) {
+      sessionIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'sessionId',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sessionId',
+        value: value,
+      ));
     });
   }
 
@@ -793,13 +900,11 @@ extension ReadingLogQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'sessionId',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sessionId',
+        value: value,
+      ));
     });
   }
 
@@ -810,15 +915,13 @@ extension ReadingLogQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'sessionId',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sessionId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -852,6 +955,19 @@ extension ReadingLogQuerySortBy
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'date', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortByExactTimestamp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exactTimestamp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      sortByExactTimestampDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exactTimestamp', Sort.desc);
     });
   }
 
@@ -891,6 +1007,20 @@ extension ReadingLogQuerySortBy
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      sortBySessionDurationMinutes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionDurationMinutes', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      sortBySessionDurationMinutesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionDurationMinutes', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> sortBySessionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sessionId', Sort.asc);
@@ -927,6 +1057,19 @@ extension ReadingLogQuerySortThenBy
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByDateDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'date', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenByExactTimestamp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exactTimestamp', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      thenByExactTimestampDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'exactTimestamp', Sort.desc);
     });
   }
 
@@ -978,6 +1121,20 @@ extension ReadingLogQuerySortThenBy
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      thenBySessionDurationMinutes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionDurationMinutes', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy>
+      thenBySessionDurationMinutesDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sessionDurationMinutes', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QAfterSortBy> thenBySessionId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sessionId', Sort.asc);
@@ -1005,6 +1162,12 @@ extension ReadingLogQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByExactTimestamp() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'exactTimestamp');
+    });
+  }
+
   QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByIsImported() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isImported');
@@ -1017,11 +1180,17 @@ extension ReadingLogQueryWhereDistinct
     });
   }
 
-  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByMangaDexId({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct> distinctByMangaDexId(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'mangaDexId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ReadingLog, ReadingLog, QDistinct>
+      distinctBySessionDurationMinutes() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sessionDurationMinutes');
     });
   }
 
@@ -1052,6 +1221,13 @@ extension ReadingLogQueryProperty
     });
   }
 
+  QueryBuilder<ReadingLog, DateTime?, QQueryOperations>
+      exactTimestampProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'exactTimestamp');
+    });
+  }
+
   QueryBuilder<ReadingLog, bool, QQueryOperations> isImportedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isImported');
@@ -1067,6 +1243,13 @@ extension ReadingLogQueryProperty
   QueryBuilder<ReadingLog, String, QQueryOperations> mangaDexIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'mangaDexId');
+    });
+  }
+
+  QueryBuilder<ReadingLog, int, QQueryOperations>
+      sessionDurationMinutesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sessionDurationMinutes');
     });
   }
 
@@ -1093,12 +1276,16 @@ const ReadingLogEntrySchema = Schema(
       name: r'chaptersRead',
       type: IsarType.long,
     ),
-    r'date': PropertySchema(id: 1, name: r'date', type: IsarType.dateTime),
+    r'date': PropertySchema(
+      id: 1,
+      name: r'date',
+      type: IsarType.dateTime,
+    ),
     r'mangaDexId': PropertySchema(
       id: 2,
       name: r'mangaDexId',
       type: IsarType.string,
-    ),
+    )
   },
   estimateSize: _readingLogEntryEstimateSize,
   serialize: _readingLogEntrySerialize,
@@ -1161,166 +1348,165 @@ P _readingLogEntryDeserializeProp<P>(
 extension ReadingLogEntryQueryFilter
     on QueryBuilder<ReadingLogEntry, ReadingLogEntry, QFilterCondition> {
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  chaptersReadEqualTo(int value) {
+      chaptersReadEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'chaptersRead', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  chaptersReadGreaterThan(int value, {bool include = false}) {
+      chaptersReadGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'chaptersRead',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  chaptersReadLessThan(int value, {bool include = false}) {
+      chaptersReadLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'chaptersRead',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'chaptersRead',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  chaptersReadBetween(
+      chaptersReadBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'chaptersRead',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'chaptersRead',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  dateEqualTo(DateTime value) {
+      dateEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'date', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  dateGreaterThan(DateTime value, {bool include = false}) {
+      dateGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'date',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  dateLessThan(DateTime value, {bool include = false}) {
+      dateLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'date',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'date',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  dateBetween(
+      dateBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'date',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'date',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdEqualTo(String value, {bool caseSensitive = true}) {
+      mangaDexIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdGreaterThan(
+      mangaDexIdGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdLessThan(
+      mangaDexIdLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdBetween(
+      mangaDexIdBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1328,86 +1514,84 @@ extension ReadingLogEntryQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'mangaDexId',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mangaDexId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdStartsWith(String value, {bool caseSensitive = true}) {
+      mangaDexIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdEndsWith(String value, {bool caseSensitive = true}) {
+      mangaDexIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdContains(String value, {bool caseSensitive = true}) {
+      mangaDexIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdMatches(String pattern, {bool caseSensitive = true}) {
+      mangaDexIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'mangaDexId',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mangaDexId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdIsEmpty() {
+      mangaDexIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<ReadingLogEntry, ReadingLogEntry, QAfterFilterCondition>
-  mangaDexIdIsNotEmpty() {
+      mangaDexIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mangaDexId',
+        value: '',
+      ));
     });
   }
 }

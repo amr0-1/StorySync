@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:storysync/core/models/reading_state.dart';
 import 'package:storysync/core/network/image_cache_manager.dart';
@@ -7,15 +8,14 @@ import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    as org_flutter_cache_manager;
 import 'package:storysync/shared/widgets/chapter_badge.dart';
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
+import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 
 /// Grid card widget for displaying manga in grid view
-class MangaGridCard extends StatefulWidget {
+class MangaGridCard extends ConsumerStatefulWidget {
   /// The manga item to display
   final MangaItem manga;
 
@@ -41,10 +41,10 @@ class MangaGridCard extends StatefulWidget {
   });
 
   @override
-  State<MangaGridCard> createState() => _MangaGridCardState();
+  ConsumerState<MangaGridCard> createState() => _MangaGridCardState();
 }
 
-class _MangaGridCardState extends State<MangaGridCard>
+class _MangaGridCardState extends ConsumerState<MangaGridCard>
     with SingleTickerProviderStateMixin {
   bool _isButtonPressed = false;
 
@@ -174,13 +174,19 @@ class _MangaGridCardState extends State<MangaGridCard>
                   ),
                 ),
 
-                // Chapter badge - bottom left
+                // Chapter badge - bottom left (uses ephemeral offset for instant feedback)
                 Positioned(
                   left: 6,
                   bottom: 6,
-                  child: ChapterBadge(
-                    current: widget.manga.currentChapter,
-                    total: widget.manga.totalChapters,
+                  child: Builder(
+                    builder: (context) {
+                      final offsets = ref.watch(chapterOffsetProvider);
+                      final offset = offsets[widget.manga.mangaDexId] ?? 0;
+                      return ChapterBadge(
+                        current: widget.manga.currentChapter + offset,
+                        total: widget.manga.totalChapters,
+                      );
+                    },
                   ),
                 ),
 

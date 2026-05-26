@@ -47,6 +47,10 @@ class MangaItem {
   /// Whether the user has manually edited the metadata (title, author, etc.)
   bool hasCustomMetadata = false;
 
+  /// Timestamp of the last chapter read (for drop-off risk / comeback analysis).
+  /// Null for series never read. Updated on each chapter increment.
+  DateTime? lastReadAt;
+
   /// Timestamp of last update to this record
   DateTime lastUpdated = DateTime.now();
 
@@ -65,6 +69,7 @@ class MangaItem {
     this.totalChapters,
     this.source = 'mangadex',
     this.hasCustomMetadata = false,
+    this.lastReadAt,
   }) : lastUpdated = DateTime.now();
 
   /// Calculate reading progress as percentage (0.0 to 1.0)
@@ -111,6 +116,7 @@ class MangaItem {
       'source': source,
       'hasCustomMetadata': hasCustomMetadata,
       'lastUpdated': lastUpdated.toIso8601String(),
+      'lastReadAt': lastReadAt?.toIso8601String(),
     };
   }
 
@@ -129,6 +135,10 @@ class MangaItem {
         totalChapters: json['totalChapters'] as int?,
         source: json['source'] as String? ?? 'mangadex',
         hasCustomMetadata: json['hasCustomMetadata'] as bool? ?? false,
+        // BACKUP GUARD: Old JSONs lack lastReadAt → null (never read)
+        lastReadAt: json['lastReadAt'] != null
+            ? DateTime.parse(json['lastReadAt'] as String)
+            : null,
       )
       ..lastUpdated = json['lastUpdated'] != null
           ? DateTime.parse(json['lastUpdated'] as String)

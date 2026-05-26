@@ -13,6 +13,7 @@ import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/features/library/widgets/manga_grid_card.dart';
 import 'package:storysync/features/library/widgets/manga_list_tile.dart';
 import 'package:storysync/features/library/presentation/widgets/manual_add_dialog.dart';
+import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 import 'package:storysync/shared/widgets/staggered_list_builder.dart';
 
@@ -168,7 +169,7 @@ class _LibraryTabBar extends StatelessWidget {
   }
 }
 
-class _LibraryContentWrapper extends ConsumerWidget {
+class _LibraryContentWrapper extends ConsumerStatefulWidget {
   final ReadingStatus status;
   final ValueNotifier<bool> isGridView;
   final VoidInkColors colors;
@@ -180,14 +181,30 @@ class _LibraryContentWrapper extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncMangaList = ref.watch(libraryByStatusProvider(status));
+  ConsumerState<_LibraryContentWrapper> createState() =>
+      _LibraryContentWrapperState();
+}
 
-    // Watch reading states for the "reading" tab
-    final readingStatesAsync = status == ReadingStatus.reading
+class _LibraryContentWrapperState extends ConsumerState<_LibraryContentWrapper>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required by AutomaticKeepAliveClientMixin
+
+    final asyncMangaList = ref.watch(libraryByStatusProvider(widget.status));
+
+    // Watch reading states ONLY for the "reading" tab.
+    // All other tabs get an empty map — prevents stale "cold" animations
+    // from incorrectly triggering on Completed/On Hold/Plan to Read/Dropped.
+    final readingStatesAsync = widget.status == ReadingStatus.reading
         ? ref.watch(readingStatesProvider)
         : null;
-    final readingStates = readingStatesAsync?.valueOrNull ?? {};
+    final readingStates = widget.status == ReadingStatus.reading
+        ? (readingStatesAsync?.valueOrNull ?? {})
+        : <String, ReadingState>{};
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
@@ -198,21 +215,21 @@ class _LibraryContentWrapper extends ConsumerWidget {
           if (items.isEmpty) {
             return _EmptyState(
               key: const ValueKey('empty'),
-              status: status,
-              colors: colors,
+              status: widget.status,
+              colors: widget.colors,
             );
           }
 
           return ValueListenableBuilder<bool>(
             key: const ValueKey('data'),
-            valueListenable: isGridView,
+            valueListenable: widget.isGridView,
             builder: (context, isGrid, _) {
               return RefreshIndicator(
-                color: colors.goldSpark,
-                backgroundColor: colors.inkSurface,
+                color: widget.colors.goldSpark,
+                backgroundColor: widget.colors.inkSurface,
                 onRefresh: () async {
                   StorySyncHaptics.mediumTap();
-                  ref.invalidate(libraryByStatusProvider(status));
+                  ref.invalidate(libraryByStatusProvider(widget.status));
                 },
                 child: isGrid
                     ? _GridViewList(
@@ -226,7 +243,7 @@ class _LibraryContentWrapper extends ConsumerWidget {
                     : _ListViewList(
                         items: items,
                         readingStates: readingStates,
-                        colors: colors,
+                        colors: widget.colors,
                         onDetails: (manga) =>
                             context.push('/details/${manga.mangaDexId}'),
                         onIncrement: (manga) =>
@@ -237,12 +254,12 @@ class _LibraryContentWrapper extends ConsumerWidget {
           );
         },
         loading: () =>
-            _ShimmerSkeleton(key: const ValueKey('loading'), colors: colors),
+            _ShimmerSkeleton(key: const ValueKey('loading'), colors: widget.colors),
         error: (error, stack) => _ErrorState(
           key: const ValueKey('error'),
           error: error.toString(),
-          colors: colors,
-          onRetry: () => ref.invalidate(libraryByStatusProvider(status)),
+          colors: widget.colors,
+          onRetry: () => ref.invalidate(libraryByStatusProvider(widget.status)),
         ),
       ),
     );
@@ -254,11 +271,14 @@ class _LibraryContentWrapper extends ConsumerWidget {
     MangaItem manga,
   ) async {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
-    final success = await ref
-        .read(libraryControllerProvider.notifier)
-        .incrementChapter(manga.mangaDexId, logToHeatmap: true);
 
-    if (!success && context.mounted) {
+    // Use the debounced controller for instant UI + batched DB writes
+    final accepted = await ref
+        .read(chapterOffsetProvider.notifier)
+        .increment(manga.mangaDexId);
+
+    if (!accepted && context.mounted) {
+      // Check if it's the 50+ chapter guard or a max-chapter rejection
       final todayCount = await ref
           .read(libraryControllerProvider.notifier)
           .getTodayChapterCount(manga.mangaDexId);

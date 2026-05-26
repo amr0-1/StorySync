@@ -135,6 +135,12 @@ class IsarService {
 
       if (manga == null) return false;
 
+      // GUARD: Prevent increment on completed series — no ReadingLog should
+      // be created for a series the user has already finished.
+      if (manga.readingStatus == ReadingStatus.completed) {
+        return false;
+      }
+
       // Don't increment beyond total chapters if known
       if (manga.totalChapters != null &&
           manga.chapterProgress >= manga.totalChapters!) {
@@ -143,6 +149,7 @@ class IsarService {
 
       manga.chapterProgress++;
       manga.lastUpdated = DateTime.now();
+      manga.lastReadAt = DateTime.now();
 
       await isar.mangaItems.put(manga);
 
@@ -161,9 +168,11 @@ class IsarService {
             date: logDate,
             mangaDexId: mangaDexId,
             chaptersRead: 1,
+            exactTimestamp: DateTime.now(),
           );
         } else {
           log.chaptersRead++;
+          log.exactTimestamp = DateTime.now();
         }
 
         await isar.readingLogs.put(log);

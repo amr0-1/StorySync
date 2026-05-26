@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/data/models/reading_log.dart';
@@ -82,6 +83,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: _handleClearCache,
           ),
           const SizedBox(height: AppDimensions.space24),
+
+          // Developer & About section
+          _buildSectionLabel(colors, 'DEVELOPER & ABOUT'),
+          const SizedBox(height: AppDimensions.space12),
+          _buildSettingsTile(
+            colors: colors,
+            icon: Icons.code,
+            title: 'Developer',
+            subtitle: '@amr0-1',
+            onTap: () async {
+              final url = Uri.parse('https://github.com/amr0-1');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+          const SizedBox(height: AppDimensions.space32),
 
           // App info
           Center(
@@ -214,7 +232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'manga': allManga.map((e) => e.toJson()).toList(),
         'readingLogs': allReadingLogs.map((e) => e.toJson()).toList(),
         'exportedAt': DateTime.now().toIso8601String(),
-        'version': '1.0.0',
+        'version': '2.0.0',
       };
 
       final String jsonString = jsonEncode(exportData);

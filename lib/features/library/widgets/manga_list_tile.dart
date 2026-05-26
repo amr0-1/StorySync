@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:storysync/core/models/reading_state.dart';
 import 'package:storysync/core/network/image_cache_manager.dart';
@@ -6,14 +7,13 @@ import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    as org_flutter_cache_manager;
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
+import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 
 /// List tile widget for displaying manga in list view
-class MangaListTile extends StatelessWidget {
+class MangaListTile extends ConsumerWidget {
   /// The manga item to display
   final MangaItem manga;
 
@@ -35,10 +35,14 @@ class MangaListTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
 
-    Widget tile = _buildTileContent(colors);
+    // Read ephemeral offset for instant chapter display
+    final offsets = ref.watch(chapterOffsetProvider);
+    final offset = offsets[manga.mangaDexId] ?? 0;
+
+    Widget tile = _buildTileContent(colors, offset);
 
     // Wrap in reading state wrapper for cold/hot animations
     if (readingState != ReadingState.normal) {
@@ -53,7 +57,7 @@ class MangaListTile extends StatelessWidget {
     return DeepPressCard(onTap: onTap, child: tile);
   }
 
-  Widget _buildTileContent(VoidInkColors colors) {
+  Widget _buildTileContent(VoidInkColors colors, int offset) {
     return Container(
       height: 82,
       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space16),
@@ -111,13 +115,13 @@ class MangaListTile extends StatelessWidget {
             ),
           ),
 
-          // Chapter counter
+          // Chapter counter (uses ephemeral offset for instant feedback)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${manga.currentChapter}',
+                '${manga.currentChapter + offset}',
                 style: AppTextStyles.monoMedium.copyWith(
                   color: colors.goldSpark,
                 ),

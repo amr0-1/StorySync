@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:storysync/features/discover/presentation/controllers/discover_controller.dart';
@@ -774,13 +776,19 @@ class _DiscoverResultTile extends StatelessWidget {
                 width: 50,
                 height: 68,
                 child: result.coverUrl != null
-                    ? Image.network(
-                        result.coverUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: result.coverUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, error, stack) =>
+                        cacheManager: CustomCacheManager.instance,
+                        // 50px × 2 and 68px × 2 for high-density displays
+                        memCacheWidth: 100,
+                        memCacheHeight: 136,
+                        errorWidget: (_, _, _) =>
                             _buildCoverPlaceholder(colors),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
+                        progressIndicatorBuilder: (_, _, progress) {
+                          if (progress.progress == null) {
+                            return _buildCoverPlaceholder(colors);
+                          }
                           return _buildCoverPlaceholder(
                             colors,
                             showLoading: true,

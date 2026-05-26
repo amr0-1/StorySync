@@ -16,19 +16,16 @@ String _$discoverControllerHash() =>
 ///
 /// Copied from [DiscoverController].
 @ProviderFor(DiscoverController)
-final discoverControllerProvider =
-    AutoDisposeAsyncNotifierProvider<
-      DiscoverController,
-      List<MangaItem>
-    >.internal(
-      DiscoverController.new,
-      name: r'discoverControllerProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$discoverControllerHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final discoverControllerProvider = AutoDisposeAsyncNotifierProvider<
+    DiscoverController, List<MangaItem>>.internal(
+  DiscoverController.new,
+  name: r'discoverControllerProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$discoverControllerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$DiscoverController = AutoDisposeAsyncNotifier<List<MangaItem>>;
 // ignore_for_file: type=lint

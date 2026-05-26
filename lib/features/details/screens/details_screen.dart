@@ -7,6 +7,7 @@ import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:storysync/features/discover/presentation/controllers/discover_controller.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
+import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
@@ -16,8 +17,6 @@ import 'package:storysync/shared/widgets/status_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 import 'package:storysync/features/details/presentation/controllers/palette_controller.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    as org_flutter_cache_manager;
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -39,7 +38,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadManga();
+    // Defer loading so the route transition animation plays smoothly
+    // before heavy Isar queries block the main thread.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadManga();
+    });
   }
 
   Future<void> _loadManga() async {
@@ -425,17 +428,20 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     }
   }
 
+  /// Updates chapter progress via the debounced controller for increments
+  /// (zero-latency UI + batched DB write at 800ms idle), and via direct
+  /// libraryController for decrements (not a rapid-tap scenario).
   Future<void> _updateChapter(MangaItem manga, int newChapter) async {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
     final currentChapter = manga.chapterProgress;
 
     if (newChapter > currentChapter) {
-      // Incrementing
-      final success = await ref
-          .read(libraryControllerProvider.notifier)
-          .incrementChapter(manga.mangaDexId, logToHeatmap: true);
+      // Incrementing — use debounced controller for instant UI + batched write
+      final accepted = await ref
+          .read(chapterOffsetProvider.notifier)
+          .increment(manga.mangaDexId);
 
-      if (!success && mounted) {
+      if (!accepted && mounted) {
         final todayCount = await ref
             .read(libraryControllerProvider.notifier)
             .getTodayChapterCount(manga.mangaDexId);
@@ -492,11 +498,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         } else {
           VoidInkSnackbar.showError(context, 'Already at max chapters');
         }
-      } else if (success && mounted) {
-        _refreshMangaData();
       }
+      // No need to call _refreshMangaData on success — the ephemeral offset
+      // provides instant UI feedback, and Isar stream will update on flush.
     } else if (newChapter < currentChapter) {
-      // Decrementing
+      // Decrementing — direct call (not a rapid-tap scenario)
       final success = await ref
           .read(libraryControllerProvider.notifier)
           .decrementChapter(manga.mangaDexId);
@@ -576,6 +582,7 @@ class _HeroHeader extends StatelessWidget {
                   imageUrl: manga.coverUrl!,
                   fit: BoxFit.cover,
                   cacheManager: CustomCacheManager.instance,
+                  memCacheWidth: 400, // Low-res is fine for blurred background
                   errorWidget: (context, url, error) =>
                       Container(color: colors.inkPanel),
                 ),
@@ -647,6 +654,7 @@ class _HeroHeader extends StatelessWidget {
                           imageUrl: manga.coverUrl!,
                           fit: BoxFit.cover,
                           cacheManager: CustomCacheManager.instance,
+                          memCacheWidth: 260, // 130pt × 2 for pixel density
                           errorWidget: (context, url, error) =>
                               _CoverPlaceholder(colors: colors),
                           progressIndicatorBuilder: (context, url, progress) {
@@ -885,7 +893,11 @@ class _AddToLibraryButton extends StatelessWidget {
   }
 }
 
-class _TrackerConsole extends StatelessWidget {
+/// Tracker console displaying status dropdown and chapter stepper.
+///
+/// ConsumerWidget so it can watch [chapterOffsetProvider] for instant
+/// UI feedback on rapid +1 taps (ephemeral offset from debounced controller).
+class _TrackerConsole extends ConsumerWidget {
   final MangaItem manga;
   final VoidInkColors colors;
   final ValueChanged<ReadingStatus> onStatusChanged;
@@ -899,7 +911,12 @@ class _TrackerConsole extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch ephemeral offset for instant chapter display
+    final offsets = ref.watch(chapterOffsetProvider);
+    final offset = offsets[manga.mangaDexId] ?? 0;
+    final effectiveChapter = manga.chapterProgress + offset;
+
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),
       decoration: BoxDecoration(
@@ -926,9 +943,9 @@ class _TrackerConsole extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.space24),
 
-          // Chapter stepper
+          // Chapter stepper — uses effective chapter (base + ephemeral offset)
           ChapterStepper(
-            currentChapter: manga.chapterProgress,
+            currentChapter: effectiveChapter,
             totalChapters: manga.totalChapters,
             onChanged: onChapterChanged,
           ),

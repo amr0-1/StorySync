@@ -17,7 +17,11 @@ const MangaItemSchema = CollectionSchema(
   name: r'MangaItem',
   id: 6638099258669080880,
   properties: {
-    r'author': PropertySchema(id: 0, name: r'author', type: IsarType.string),
+    r'author': PropertySchema(
+      id: 0,
+      name: r'author',
+      type: IsarType.string,
+    ),
     r'chapterProgress': PropertySchema(
       id: 1,
       name: r'chapterProgress',
@@ -33,49 +37,62 @@ const MangaItemSchema = CollectionSchema(
       name: r'hasCustomMetadata',
       type: IsarType.bool,
     ),
-    r'lastUpdated': PropertySchema(
+    r'lastReadAt': PropertySchema(
       id: 4,
+      name: r'lastReadAt',
+      type: IsarType.dateTime,
+    ),
+    r'lastUpdated': PropertySchema(
+      id: 5,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'mangaDexId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'mangaDexId',
       type: IsarType.string,
     ),
     r'progress': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'progress',
       type: IsarType.double,
     ),
     r'progressPercent': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'progressPercent',
       type: IsarType.long,
     ),
     r'readingStatus': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'readingStatus',
       type: IsarType.byte,
       enumMap: _MangaItemreadingStatusEnumValueMap,
     ),
     r'remainingChapters': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'remainingChapters',
       type: IsarType.long,
     ),
-    r'source': PropertySchema(id: 10, name: r'source', type: IsarType.string),
-    r'synopsis': PropertySchema(
+    r'source': PropertySchema(
       id: 11,
+      name: r'source',
+      type: IsarType.string,
+    ),
+    r'synopsis': PropertySchema(
+      id: 12,
       name: r'synopsis',
       type: IsarType.string,
     ),
-    r'title': PropertySchema(id: 12, name: r'title', type: IsarType.string),
-    r'totalChapters': PropertySchema(
+    r'title': PropertySchema(
       id: 13,
+      name: r'title',
+      type: IsarType.string,
+    ),
+    r'totalChapters': PropertySchema(
+      id: 14,
       name: r'totalChapters',
       type: IsarType.long,
-    ),
+    )
   },
   estimateSize: _mangaItemEstimateSize,
   serialize: _mangaItemSerialize,
@@ -93,9 +110,9 @@ const MangaItemSchema = CollectionSchema(
           name: r'mangaDexId',
           type: IndexType.hash,
           caseSensitive: true,
-        ),
+        )
       ],
-    ),
+    )
   },
   links: {},
   embeddedSchemas: {},
@@ -145,16 +162,17 @@ void _mangaItemSerialize(
   writer.writeLong(offsets[1], object.chapterProgress);
   writer.writeString(offsets[2], object.coverUrl);
   writer.writeBool(offsets[3], object.hasCustomMetadata);
-  writer.writeDateTime(offsets[4], object.lastUpdated);
-  writer.writeString(offsets[5], object.mangaDexId);
-  writer.writeDouble(offsets[6], object.progress);
-  writer.writeLong(offsets[7], object.progressPercent);
-  writer.writeByte(offsets[8], object.readingStatus.index);
-  writer.writeLong(offsets[9], object.remainingChapters);
-  writer.writeString(offsets[10], object.source);
-  writer.writeString(offsets[11], object.synopsis);
-  writer.writeString(offsets[12], object.title);
-  writer.writeLong(offsets[13], object.totalChapters);
+  writer.writeDateTime(offsets[4], object.lastReadAt);
+  writer.writeDateTime(offsets[5], object.lastUpdated);
+  writer.writeString(offsets[6], object.mangaDexId);
+  writer.writeDouble(offsets[7], object.progress);
+  writer.writeLong(offsets[8], object.progressPercent);
+  writer.writeByte(offsets[9], object.readingStatus.index);
+  writer.writeLong(offsets[10], object.remainingChapters);
+  writer.writeString(offsets[11], object.source);
+  writer.writeString(offsets[12], object.synopsis);
+  writer.writeString(offsets[13], object.title);
+  writer.writeLong(offsets[14], object.totalChapters);
 }
 
 MangaItem _mangaItemDeserialize(
@@ -169,15 +187,16 @@ MangaItem _mangaItemDeserialize(
   object.coverUrl = reader.readStringOrNull(offsets[2]);
   object.hasCustomMetadata = reader.readBool(offsets[3]);
   object.id = id;
-  object.lastUpdated = reader.readDateTime(offsets[4]);
-  object.mangaDexId = reader.readString(offsets[5]);
+  object.lastReadAt = reader.readDateTimeOrNull(offsets[4]);
+  object.lastUpdated = reader.readDateTime(offsets[5]);
+  object.mangaDexId = reader.readString(offsets[6]);
   object.readingStatus =
-      _MangaItemreadingStatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
-      ReadingStatus.reading;
-  object.source = reader.readString(offsets[10]);
-  object.synopsis = reader.readStringOrNull(offsets[11]);
-  object.title = reader.readString(offsets[12]);
-  object.totalChapters = reader.readLongOrNull(offsets[13]);
+      _MangaItemreadingStatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+          ReadingStatus.reading;
+  object.source = reader.readString(offsets[11]);
+  object.synopsis = reader.readStringOrNull(offsets[12]);
+  object.title = reader.readString(offsets[13]);
+  object.totalChapters = reader.readLongOrNull(offsets[14]);
   return object;
 }
 
@@ -197,28 +216,28 @@ P _mangaItemDeserializeProp<P>(
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 6:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 8:
-      return (_MangaItemreadingStatusValueEnumMap[reader.readByteOrNull(
-                offset,
-              )] ??
-              ReadingStatus.reading)
-          as P;
-    case 9:
       return (reader.readLong(offset)) as P;
+    case 9:
+      return (_MangaItemreadingStatusValueEnumMap[
+              reader.readByteOrNull(offset)] ??
+          ReadingStatus.reading) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -301,10 +320,8 @@ extension MangaItemByIndex on IsarCollection<MangaItem> {
     return putAllByIndex(r'mangaDexId', objects);
   }
 
-  List<Id> putAllByMangaDexIdSync(
-    List<MangaItem> objects, {
-    bool saveLinks = true,
-  }) {
+  List<Id> putAllByMangaDexIdSync(List<MangaItem> objects,
+      {bool saveLinks = true}) {
     return putAllByIndexSync(r'mangaDexId', objects, saveLinks: saveLinks);
   }
 }
@@ -322,7 +339,10 @@ extension MangaItemQueryWhere
     on QueryBuilder<MangaItem, MangaItem, QWhereClause> {
   QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
     });
   }
 
@@ -348,10 +368,8 @@ extension MangaItemQueryWhere
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> idGreaterThan(
-    Id id, {
-    bool include = false,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> idGreaterThan(Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -359,10 +377,8 @@ extension MangaItemQueryWhere
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> idLessThan(
-    Id id, {
-    bool include = false,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> idLessThan(Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -377,67 +393,56 @@ extension MangaItemQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IdWhereClause.between(
-          lower: lowerId,
-          includeLower: includeLower,
-          upper: upperId,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> mangaDexIdEqualTo(
-    String mangaDexId,
-  ) {
+      String mangaDexId) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'mangaDexId', value: [mangaDexId]),
-      );
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'mangaDexId',
+        value: [mangaDexId],
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterWhereClause> mangaDexIdNotEqualTo(
-    String mangaDexId,
-  ) {
+      String mangaDexId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [],
-                upper: [mangaDexId],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [mangaDexId],
-                includeLower: false,
-                upper: [],
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [],
+              upper: [mangaDexId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [mangaDexId],
+              includeLower: false,
+              upper: [],
+            ));
       } else {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [mangaDexId],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'mangaDexId',
-                lower: [],
-                upper: [mangaDexId],
-                includeUpper: false,
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [mangaDexId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'mangaDexId',
+              lower: [],
+              upper: [mangaDexId],
+              includeUpper: false,
+            ));
       }
     });
   }
@@ -447,17 +452,17 @@ extension MangaItemQueryFilter
     on QueryBuilder<MangaItem, MangaItem, QFilterCondition> {
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'author'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'author',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'author'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'author',
+      ));
     });
   }
 
@@ -466,13 +471,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -482,14 +485,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -499,14 +500,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -518,16 +517,14 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'author',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'author',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -536,13 +533,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -551,131 +546,126 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'author',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'author',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'author',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'author',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'author', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'author',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> authorIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'author', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'author',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  chapterProgressEqualTo(int value) {
+      chapterProgressEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'chapterProgress', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'chapterProgress',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  chapterProgressGreaterThan(int value, {bool include = false}) {
+      chapterProgressGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'chapterProgress',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'chapterProgress',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  chapterProgressLessThan(int value, {bool include = false}) {
+      chapterProgressLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'chapterProgress',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'chapterProgress',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  chapterProgressBetween(
+      chapterProgressBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'chapterProgress',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'chapterProgress',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> coverUrlIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'coverUrl'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'coverUrl',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  coverUrlIsNotNull() {
+      coverUrlIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'coverUrl'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'coverUrl',
+      ));
     });
   }
 
@@ -684,13 +674,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -700,14 +688,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -717,14 +703,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -736,16 +720,14 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'coverUrl',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'coverUrl',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -754,13 +736,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -769,79 +749,74 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> coverUrlContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'coverUrl',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'coverUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> coverUrlMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'coverUrl',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'coverUrl',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> coverUrlIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'coverUrl', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'coverUrl',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  coverUrlIsNotEmpty() {
+      coverUrlIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'coverUrl', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'coverUrl',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  hasCustomMetadataEqualTo(bool value) {
+      hasCustomMetadataEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'hasCustomMetadata', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasCustomMetadata',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> idEqualTo(
-    Id value,
-  ) {
+      Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'id', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -850,13 +825,11 @@ extension MangaItemQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -865,13 +838,11 @@ extension MangaItemQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -882,38 +853,108 @@ extension MangaItemQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'id',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastUpdatedEqualTo(
-    DateTime value,
-  ) {
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastReadAtIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'lastUpdated', value: value),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastReadAt',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  lastUpdatedGreaterThan(DateTime value, {bool include = false}) {
+      lastReadAtIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'lastUpdated',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastReadAt',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastReadAtEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastReadAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
+      lastReadAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastReadAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastReadAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastReadAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastReadAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastReadAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> lastUpdatedEqualTo(
+      DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastUpdated',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
+      lastUpdatedGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastUpdated',
+        value: value,
+      ));
     });
   }
 
@@ -922,13 +963,11 @@ extension MangaItemQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'lastUpdated',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastUpdated',
+        value: value,
+      ));
     });
   }
 
@@ -939,15 +978,13 @@ extension MangaItemQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'lastUpdated',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastUpdated',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
@@ -956,31 +993,27 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  mangaDexIdGreaterThan(
+      mangaDexIdGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -990,14 +1023,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1009,29 +1040,28 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'mangaDexId',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'mangaDexId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  mangaDexIdStartsWith(String value, {bool caseSensitive = true}) {
+      mangaDexIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1040,61 +1070,55 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> mangaDexIdContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'mangaDexId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'mangaDexId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> mangaDexIdMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'mangaDexId',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'mangaDexId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  mangaDexIdIsEmpty() {
+      mangaDexIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'mangaDexId',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  mangaDexIdIsNotEmpty() {
+      mangaDexIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'mangaDexId', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'mangaDexId',
+        value: '',
+      ));
     });
   }
 
@@ -1103,13 +1127,11 @@ extension MangaItemQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'progress',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'progress',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -1119,14 +1141,12 @@ extension MangaItemQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'progress',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'progress',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -1136,14 +1156,12 @@ extension MangaItemQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'progress',
-          value: value,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'progress',
+        value: value,
+        epsilon: epsilon,
+      ));
     });
   }
 
@@ -1155,181 +1173,182 @@ extension MangaItemQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'progress',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          epsilon: epsilon,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'progress',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  progressPercentEqualTo(int value) {
+      progressPercentEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'progressPercent', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'progressPercent',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  progressPercentGreaterThan(int value, {bool include = false}) {
+      progressPercentGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'progressPercent',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'progressPercent',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  progressPercentLessThan(int value, {bool include = false}) {
+      progressPercentLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'progressPercent',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'progressPercent',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  progressPercentBetween(
+      progressPercentBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'progressPercent',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'progressPercent',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  readingStatusEqualTo(ReadingStatus value) {
+      readingStatusEqualTo(ReadingStatus value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'readingStatus', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'readingStatus',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  readingStatusGreaterThan(ReadingStatus value, {bool include = false}) {
+      readingStatusGreaterThan(
+    ReadingStatus value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'readingStatus',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'readingStatus',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  readingStatusLessThan(ReadingStatus value, {bool include = false}) {
+      readingStatusLessThan(
+    ReadingStatus value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'readingStatus',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'readingStatus',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  readingStatusBetween(
+      readingStatusBetween(
     ReadingStatus lower,
     ReadingStatus upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'readingStatus',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'readingStatus',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  remainingChaptersEqualTo(int value) {
+      remainingChaptersEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'remainingChapters', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'remainingChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  remainingChaptersGreaterThan(int value, {bool include = false}) {
+      remainingChaptersGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'remainingChapters',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'remainingChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  remainingChaptersLessThan(int value, {bool include = false}) {
+      remainingChaptersLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'remainingChapters',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'remainingChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  remainingChaptersBetween(
+      remainingChaptersBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'remainingChapters',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'remainingChapters',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
@@ -1338,13 +1357,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1354,14 +1371,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1371,14 +1386,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1390,16 +1403,14 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'source',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'source',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1408,13 +1419,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1423,76 +1432,70 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> sourceContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'source',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'source',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> sourceMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'source',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'source',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> sourceIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'source', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'source',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> sourceIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'source', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'source',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> synopsisIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'synopsis'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'synopsis',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  synopsisIsNotNull() {
+      synopsisIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'synopsis'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'synopsis',
+      ));
     });
   }
 
@@ -1501,13 +1504,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1517,14 +1518,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1534,14 +1533,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1553,16 +1550,14 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'synopsis',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'synopsis',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1571,13 +1566,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1586,60 +1579,54 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> synopsisContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'synopsis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'synopsis',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> synopsisMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'synopsis',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'synopsis',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> synopsisIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'synopsis', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'synopsis',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  synopsisIsNotEmpty() {
+      synopsisIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'synopsis', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'synopsis',
+        value: '',
+      ));
     });
   }
 
@@ -1648,13 +1635,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1664,14 +1649,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1681,14 +1664,12 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1700,16 +1681,14 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'title',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'title',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1718,13 +1697,11 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
@@ -1733,132 +1710,127 @@ extension MangaItemQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> titleContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      String value,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'title',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> titleMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+      String pattern,
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'title',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'title',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> titleIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'title', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition> titleIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'title', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'title',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersIsNull() {
+      totalChaptersIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'totalChapters'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'totalChapters',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersIsNotNull() {
+      totalChaptersIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'totalChapters'),
-      );
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'totalChapters',
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersEqualTo(int? value) {
+      totalChaptersEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'totalChapters', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersGreaterThan(int? value, {bool include = false}) {
+      totalChaptersGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'totalChapters',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersLessThan(int? value, {bool include = false}) {
+      totalChaptersLessThan(
+    int? value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'totalChapters',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalChapters',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterFilterCondition>
-  totalChaptersBetween(
+      totalChaptersBetween(
     int? lower,
     int? upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'totalChapters',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalChapters',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -1913,9 +1885,21 @@ extension MangaItemQuerySortBy on QueryBuilder<MangaItem, MangaItem, QSortBy> {
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy>
-  sortByHasCustomMetadataDesc() {
+      sortByHasCustomMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasCustomMetadata', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> sortByLastReadAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastReadAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> sortByLastReadAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastReadAt', Sort.desc);
     });
   }
 
@@ -1986,7 +1970,7 @@ extension MangaItemQuerySortBy on QueryBuilder<MangaItem, MangaItem, QSortBy> {
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy>
-  sortByRemainingChaptersDesc() {
+      sortByRemainingChaptersDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'remainingChapters', Sort.desc);
     });
@@ -2086,7 +2070,7 @@ extension MangaItemQuerySortThenBy
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy>
-  thenByHasCustomMetadataDesc() {
+      thenByHasCustomMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'hasCustomMetadata', Sort.desc);
     });
@@ -2101,6 +2085,18 @@ extension MangaItemQuerySortThenBy
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByLastReadAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastReadAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaItem, MangaItem, QAfterSortBy> thenByLastReadAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastReadAt', Sort.desc);
     });
   }
 
@@ -2171,7 +2167,7 @@ extension MangaItemQuerySortThenBy
   }
 
   QueryBuilder<MangaItem, MangaItem, QAfterSortBy>
-  thenByRemainingChaptersDesc() {
+      thenByRemainingChaptersDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'remainingChapters', Sort.desc);
     });
@@ -2228,9 +2224,8 @@ extension MangaItemQuerySortThenBy
 
 extension MangaItemQueryWhereDistinct
     on QueryBuilder<MangaItem, MangaItem, QDistinct> {
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByAuthor({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByAuthor(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'author', caseSensitive: caseSensitive);
     });
@@ -2242,9 +2237,8 @@ extension MangaItemQueryWhereDistinct
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByCoverUrl({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByCoverUrl(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'coverUrl', caseSensitive: caseSensitive);
     });
@@ -2256,15 +2250,20 @@ extension MangaItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByLastReadAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastReadAt');
+    });
+  }
+
   QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByLastUpdated() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastUpdated');
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByMangaDexId({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByMangaDexId(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'mangaDexId', caseSensitive: caseSensitive);
     });
@@ -2294,25 +2293,22 @@ extension MangaItemQueryWhereDistinct
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctBySource({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctBySource(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'source', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctBySynopsis({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctBySynopsis(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'synopsis', caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByTitle({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<MangaItem, MangaItem, QDistinct> distinctByTitle(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
     });
@@ -2357,6 +2353,12 @@ extension MangaItemQueryProperty
     });
   }
 
+  QueryBuilder<MangaItem, DateTime?, QQueryOperations> lastReadAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastReadAt');
+    });
+  }
+
   QueryBuilder<MangaItem, DateTime, QQueryOperations> lastUpdatedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastUpdated');
@@ -2382,7 +2384,7 @@ extension MangaItemQueryProperty
   }
 
   QueryBuilder<MangaItem, ReadingStatus, QQueryOperations>
-  readingStatusProperty() {
+      readingStatusProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'readingStatus');
     });

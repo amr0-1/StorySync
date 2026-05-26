@@ -145,6 +145,37 @@ class VoidInkColors extends ThemeExtension<VoidInkColors> {
     ReadingStatus.dropped => statusDroppedBg,
   };
 
+  // ── Adaptive State Variants ──────────────────────────────────
+
+  /// Subtle vibrant variant for "Hot / Binge" state (Efficiency > 80).
+  ///
+  /// Increases gold accent saturation by ~8%. All other colors remain
+  /// identical — preserving the Void Ink identity.
+  VoidInkColors get vibrant => copyWith(
+    goldSpark: _adjustSaturation(goldSpark, 0.08),
+    goldLight: _adjustSaturation(goldLight, 0.05),
+  );
+
+  /// Subtle muted variant for "Fatigued / Inactive" state.
+  ///
+  /// Softens accent colors by ~10% and reduces text contrast slightly.
+  /// The effect is intentionally near-imperceptible — a subconscious shift.
+  VoidInkColors get muted => copyWith(
+    goldSpark: _adjustSaturation(goldSpark, -0.10),
+    goldLight: _adjustSaturation(goldLight, -0.08),
+    textPrimary: Color.lerp(textPrimary, textSecondary, 0.10)!,
+    inkBorder: Color.lerp(inkBorder, inkMuted, 0.15)!,
+  );
+
+  /// Shift a color's saturation by [delta] in HSL space.
+  /// Positive delta = richer, negative delta = more muted.
+  static Color _adjustSaturation(Color color, double delta) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl
+        .withSaturation((hsl.saturation + delta).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   @override
   VoidInkColors copyWith({
     Color? inkVoid,

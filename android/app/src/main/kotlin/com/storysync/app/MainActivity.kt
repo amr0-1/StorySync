@@ -1,4 +1,4 @@
-package com.mtrack.mtrack
+package com.storysync.app
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider

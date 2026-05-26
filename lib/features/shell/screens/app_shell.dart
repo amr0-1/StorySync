@@ -1,24 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:storysync/core/permissions/notification_permission_handler.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
+import 'package:storysync/features/analytics/engine/analytics_providers_v2.dart';
 
 /// App shell with custom navigation bar and smooth tab transitions.
 ///
 /// Tab switching uses a crossfade + subtle slide-up animation
 /// instead of a hard snap.
-class AppShell extends StatefulWidget {
+///
+/// Also handles the one-time notification permission prompt. This was
+/// moved here from [StorySyncApp] because the shell's [BuildContext]
+/// is *inside* the Navigator, which is required for [showModalBottomSheet].
+class AppShell extends ConsumerStatefulWidget {
   /// The child widget to display (routed content)
   final StatefulNavigationShell navigationShell;
 
   const AppShell({super.key, required this.navigationShell});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
+  /// SharedPreferences key — persists across sessions to avoid re-prompting.
+  static const _permissionAskedKey = 'notif_permission_asked';
+
+  /// Instance guard to prevent duplicate dialogs within one session.
+  bool _permissionCheckScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Defer permission check until the widget tree is fully painted.
+    // This guarantees that `context` is valid and has a Navigator ancestor,
+    // which is required by the custom BottomSheet inside the handler.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeRequestNotificationPermission();
+    });
+  }
+
+  /// Request notification permission exactly once, triggered when the user
+  /// first achieves a reading streak (currentStreak > 0).
+  ///
+  /// Uses [SharedPreferences] to persist across sessions, and an instance
+  /// guard to prevent duplicate dialogs within one session.
+  Future<void> _maybeRequestNotificationPermission() async {
+    if (_permissionCheckScheduled) return;
+    _permissionCheckScheduled = true;
+
+    if (!mounted) return;
+
+    // Check if we already asked
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyAsked = prefs.getBool(_permissionAskedKey) ?? false;
+    if (alreadyAsked) return;
+
+    // Check if user has earned a streak (don't bother brand-new users)
+    final snapshot = await ref.read(analyticsV2SnapshotProvider.future);
+    if (snapshot.currentStreak <= 0) {
+      // Reset guard so we re-check on next shell mount
+      _permissionCheckScheduled = false;
+      return;
+    }
+
+    // Mark as asked before showing the prompt
+    await prefs.setBool(_permissionAskedKey, true);
+
+    if (mounted) {
+      NotificationPermissionHandler.requestIfNeeded(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
