@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/images/app_icon.png" alt="StorySync Logo" width="160"/>
   <h1>StorySync</h1>
-  <p><strong>A Premium, Local-First Manga & Manhwa Tracker Built for Productivity.</strong></p>
+  <p><strong>A Premium Local-First Manga & Manhwa Tracking Experience.</strong></p>
   
   [![Flutter](https://img.shields.io/badge/Flutter-3.38.6+-02569B?logo=flutter)](https://flutter.dev)
   [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -11,18 +11,18 @@
 
 ---
 
-**StorySync** is a lightning-fast, highly aesthetic library tracker focusing solely on performance, dynamic design, and rich analytics. Keep track of what you read, seamlessly discover new chapters, and generate deep behavioral insights—all driven entirely offline via Isar NoSQL.
+**StorySync** is a lightning-fast, highly aesthetic manga and manhwa tracker focused on performance, dynamic design, and rich analytics.. Keep track of what you read, seamlessly discover new chapters, and generate deep behavioral insights—all driven entirely offline via Isar NoSQL.
 
 To see StorySync in action, read on or check out the [Releases](https://github.com/amr0-1/storysync/releases) tab for pre-compiled binaries. Note: compiling from source is supported, but releases are recommended.
 
 ## ✨ Key Features
 
-- **Void Ink Global Theming:** Every single pixel respects the state of the app. Smoothly switches between high-fidelity dark ("Void") and ceramic light tones securely and instantly down to system the overlays.
-- **Isar Speed Data Engine:** Built with a fully local backend. Searching your 500+ series reading list? Sub-millisecond. Analytics aggregations? Pushed to background isolates.
+- **Void Ink Global Theming:** Every single pixel respects the state of the app. Smoothly switches between high-fidelity dark ("Void") and ceramic light themes instantly, including synchronized system overlay styling.
+- **Isar Speed Data Engine:** Built with a fully local backend. Searching your 500+ series reading list? Sub-millisecond. Heavy analytics aggregation? Executed in background isolates.
 - **Reading Intelligence & Insights:** Forget basic lists. Access a 35-day interactive heatmap of your chapter activity alongside real-time metrics detailing read velocity, streak detection, and custom personality designations based on your schedule.
 - **Intelligent Alert Protections:** An advanced context-aware warning system ensures your daily pace data doesn’t corrupt historic behavioral heat maps.
-- **Zero-Friction JSON Portability:** Moving devices? No cloud tracking needed. Instantiate a clean JSON dump of all arrays.
-- **Native iOS & Android Widgets:** Real-time updating tracking dashboards deployed straight to your phone's home screen.
+- **Zero-Friction JSON Portability:** Moving devices? No accounts, cloud sync, or telemetry required. Generate clean JSON exports of your entire library and tracking data.
+- **Native iOS & Android Widgets:** Real-time tracking dashboards deployed directly to your iOS and Android home screens.
 
 
 _(We highly recommend downloading the latest APK/IPA from the [Releases](https://github.com/amr0-1/storysync/releases) section to experience the 120hz interaction design.)_
@@ -42,7 +42,7 @@ flutter --version
 1. **Clone the repository.**
 
    ```bash
-   git clone https://github.com/yourusername/StorySync.git
+   git clone https://github.com/amr0-1/storysync.git
    cd StorySync
    ```
 
@@ -72,16 +72,16 @@ flutter --version
 
 ## 🏗 System Architecture
 
-StorySync is built around a modern local-first architecture focused on performance and maintainability.. The architecture revolves strictly around the following integrations:
+StorySync is built around a modern local-first architecture focused on performance, scalability, and maintainability. The core stack includes:
 
 - **Riverpod (v2):** Immutable, unidirectional global state tracking without massive `BuildContext` nesting logic.
 - **GoRouter:** Clean, URI-declarative pathing utilizing `StatefulShellRoute` context trees for fluid view persistence.
-- **Isar NoSQL:** Multi-threaded asynchronous queries directly off the UI thread pushing read logs to complex computation endpoints using `compute()` isolate abstractions.
+- **Isar NoSQL:** Multi-threaded asynchronous queries executed off the UI thread, with heavy analytics and read-log computations delegated to Dart isolates via `compute()`.
 
 ## ⚠ Current Development Status
 
 StorySync is under active development by a solo developer.  
-Most core systems are stable and production-ready, though a few minor issues related to native iOS/Android home screen widgets are still being refined.
+Most core systems are stable and production-ready for daily use, though a few minor issues related to native iOS/Android home screen widgets are still being refined.
 
 Because widget integrations rely heavily on platform-specific native behavior, resolving these edge cases has taken longer than initially anticipated. Stability, performance, and long-term maintainability are being prioritized over rushed fixes.
 
@@ -98,6 +98,20 @@ A custom companion API is planned for a future release to eliminate these limita
 - More resilient cross-source tracking support
 
 The existing local-first architecture is already being designed to support this future multi-source integration model cleanly without disrupting current user data.
+
+## ⚖ Disclaimer
+
+StorySync is an unofficial client/tracker and is not affiliated with MangaDex or its contributors in any form.
+
+StorySync does not host, distribute, or mirror manga/manhwa content. The application functions solely as a local-first tracking and analytics platform utilizing publicly available metadata endpoints.
+
+## 🔒 Privacy
+
+StorySync is fully local-first by design.
+
+No reading history, analytics, behavioral insights, or personal tracking data is transmitted to external servers. All core tracking operations, statistics generation, and data persistence occur entirely on-device.
+
+Users maintain complete ownership and control over their library data, including optional manual JSON exports for portability and backups.
 
 ## 🤝 Contributing
 
