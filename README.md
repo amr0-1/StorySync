@@ -24,7 +24,6 @@ To see StorySync in action, read on or check out the [Releases](https://github.c
 - **Zero-Friction JSON Portability:** Moving devices? No cloud tracking needed. Instantiate a clean JSON dump of all arrays.
 - **Native iOS & Android Widgets:** Real-time updating tracking dashboards deployed straight to your phone's home screen.
 
-## 📸 Interface Preview
 
 _(We highly recommend downloading the latest APK/IPA from the [Releases](https://github.com/amr0-1/storysync/releases) section to experience the 120hz interaction design.)_
 
