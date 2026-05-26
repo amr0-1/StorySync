@@ -85,7 +85,19 @@ Most core systems are stable and production-ready, though a few minor issues rel
 
 Because widget integrations rely heavily on platform-specific native behavior, resolving these edge cases has taken longer than initially anticipated. Stability, performance, and long-term maintainability are being prioritized over rushed fixes.
 
-Core application functionality, tracking systems, analytics, and local database operations remain fully functional and actively maintained.
+Additionally, chapter progress tracking currently requires manual value adjustments when increasing or decreasing chapter counts. This exists due to limitations within the currently integrated public API, which does not reliably expose all progression metadata required for fully automated synchronization.
+
+## 🔮 Future Scope
+
+A custom companion API is planned for a future release to eliminate these limitations and provide significantly more accurate progression synchronization. The long-term goal is to integrate this alongside the existing system as an optional enhanced backend, enabling:
+
+- Automated chapter progression synchronization
+- Improved metadata consistency
+- Faster update propagation
+- Expanded analytics capabilities
+- More resilient cross-source tracking support
+
+The existing local-first architecture is already being designed to support this future multi-source integration model cleanly without disrupting current user data.
 
 ## 🤝 Contributing
 
