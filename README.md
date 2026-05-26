@@ -3,7 +3,7 @@
   <h1>StorySync</h1>
   <p><strong>A Premium, Local-First Manga & Manhwa Tracker Built for Productivity.</strong></p>
   
-  [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
+  [![Flutter](https://img.shields.io/badge/Flutter-3.38.6+-02569B?logo=flutter)](https://flutter.dev)
   [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
   [![Local First](https://img.shields.io/badge/Architecture-Local%20First-blueviolet)](#)
   [![Design](https://img.shields.io/badge/Design-Void%20Ink-gold)](#)
