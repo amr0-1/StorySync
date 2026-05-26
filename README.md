@@ -72,7 +72,7 @@ flutter --version
 
 ## 🏗 System Architecture
 
-StorySync refuses legacy tech debt. The architecture revolves strictly around the following integrations:
+StorySync is built around a modern local-first architecture focused on performance and maintainability.. The architecture revolves strictly around the following integrations:
 
 - **Riverpod (v2):** Immutable, unidirectional global state tracking without massive `BuildContext` nesting logic.
 - **GoRouter:** Clean, URI-declarative pathing utilizing `StatefulShellRoute` context trees for fluid view persistence.
