@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:ui';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:storysync/core/database/isar_service.dart';
@@ -20,6 +22,32 @@ class WidgetService {
   static final WidgetService _instance = WidgetService._internal();
   factory WidgetService() => _instance;
   WidgetService._internal();
+
+  static String? routeFromLaunchUri(Uri? uri) {
+    if (uri == null) return null;
+
+    final sanitized = uri.toString().replaceAll(RegExp(r'\s+'), '');
+    final parsed = Uri.tryParse(sanitized);
+    if (parsed == null || parsed.scheme != 'storysync') return null;
+
+    if (parsed.host == 'manga') {
+      final mangaId = parsed.pathSegments.isNotEmpty
+          ? parsed.pathSegments.first
+          : null;
+      if (mangaId == null || mangaId.isEmpty) return null;
+      return '/details/${Uri.encodeComponent(mangaId)}';
+    }
+
+    if (parsed.host == 'insights') {
+      final date = parsed.queryParameters['date'];
+      return Uri(
+        path: '/insights',
+        queryParameters: date == null || date.isEmpty ? null : {'date': date},
+      ).toString();
+    }
+
+    return null;
+  }
 
   Future<void> initialize() async {
     try {
@@ -47,23 +75,7 @@ class WidgetService {
       }
 
       if (upNext != null) {
-        await HomeWidget.saveWidgetData<String>(_widgetTitleKey, upNext.title);
-        await HomeWidget.saveWidgetData<int>(
-          _widgetCurrentChapterKey,
-          upNext.chapterProgress,
-        );
-        await HomeWidget.saveWidgetData<int?>(
-          _widgetTotalChaptersKey,
-          upNext.totalChapters,
-        );
-        await HomeWidget.saveWidgetData<String>(
-          _widgetMangaIdKey,
-          upNext.mangaDexId,
-        );
-        await HomeWidget.saveWidgetData<String?>(
-          _widgetCoverUrlKey,
-          upNext.coverUrl,
-        );
+        await _saveUpNextWidgetData(upNext);
       } else {
         await HomeWidget.saveWidgetData<String>(
           _widgetTitleKey,
@@ -134,7 +146,19 @@ class WidgetService {
 
       if (action == 'increment' && mangaId != null) {
         final isarService = IsarService();
-        await isarService.incrementChapter(mangaId);
+        final didIncrement = await isarService.incrementChapter(mangaId);
+
+        if (didIncrement) {
+          final updatedManga = await isarService.getMangaByMangaDexId(mangaId);
+          if (updatedManga != null) {
+            await _saveUpNextWidgetData(updatedManga);
+            await HomeWidget.updateWidget(
+              androidName: 'UpNextWidgetProvider',
+              iOSName: 'UpNextWidget',
+            );
+          }
+        }
+
         await updateWidgetData();
       }
     } catch (e) {
@@ -143,8 +167,38 @@ class WidgetService {
   }
 }
 
+Future<void> _saveUpNextWidgetData(MangaItem manga) async {
+  await HomeWidget.saveWidgetData<String>(_widgetTitleKey, manga.title);
+  await HomeWidget.saveWidgetData<int>(
+    _widgetCurrentChapterKey,
+    manga.chapterProgress,
+  );
+  await HomeWidget.saveWidgetData<int?>(
+    _widgetTotalChaptersKey,
+    manga.totalChapters,
+  );
+  await HomeWidget.saveWidgetData<String>(_widgetMangaIdKey, manga.mangaDexId);
+  await HomeWidget.saveWidgetData<String?>(_widgetCoverUrlKey, manga.coverUrl);
+}
+
 @pragma('vm:entry-point')
 Future<void> interactiveCallback(Uri? uri) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
   final service = WidgetService();
-  await service.handleWidgetAction(uri);
+  try {
+    await HomeWidget.setAppGroupId(_appGroupId);
+    await IsarService().openDB();
+    await service.handleWidgetAction(uri);
+  } finally {
+    await HomeWidget.updateWidget(
+      androidName: 'UpNextWidgetProvider',
+      iOSName: 'UpNextWidget',
+    );
+    await HomeWidget.updateWidget(
+      androidName: 'HeatmapWidgetProvider',
+      iOSName: 'HeatmapWidget',
+    );
+  }
 }

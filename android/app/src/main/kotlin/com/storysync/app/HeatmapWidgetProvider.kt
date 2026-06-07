@@ -3,12 +3,19 @@ package com.storysync.app
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.net.Uri
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import org.json.JSONArray
 
 class HeatmapWidgetProvider : HomeWidgetProvider() {
+    private data class HeatmapPayload(
+        val values: IntArray,
+        val dates: Array<String?>
+    )
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -27,45 +34,70 @@ class HeatmapWidgetProvider : HomeWidgetProvider() {
             R.id.heatmap_cell_32, R.id.heatmap_cell_33, R.id.heatmap_cell_34
         )
 
+        val payload = parseHeatmapPayload(widgetData, viewIds.size)
+        if (payload == null) {
+            appWidgetIds.forEach { widgetId ->
+                val views = RemoteViews(context.packageName, R.layout.heatmap_widget)
+                applyEmptyState(views, viewIds)
+                appWidgetManager.updateAppWidget(widgetId, views)
+            }
+            return
+        }
+
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.heatmap_widget).apply {
-                val heatmapStr = widgetData.getString("widget_heatmap_data", "[]") ?: "[]"
-                val datesStr = widgetData.getString("widget_heatmap_dates", "[]") ?: "[]"
-                
-                try {
-                    val heatmapArray = JSONArray(heatmapStr)
-                    val datesArray = JSONArray(datesStr)
-                    
-                    for (i in 0 until minOf(heatmapArray.length(), viewIds.size)) {
-                        val value = heatmapArray.getInt(i)
-                        val colorStr = when (value) {
-                            0 -> "#1AFFFFFF"
-                            in 1..2 -> "#59D4AF37"
-                            else -> "#FFD4AF37"
-                        }
-                        setInt(viewIds[i], "setBackgroundColor", android.graphics.Color.parseColor(colorStr))
-                        
-                        if (i < datesArray.length()) {
-                            val dateStr = datesArray.getString(i)
-                            val intent = android.content.Intent(context, MainActivity::class.java).apply {
-                                action = android.content.Intent.ACTION_VIEW
-                                data = Uri.parse("storysync://insights?date=$dateStr")
-                            }
-                            val pendingIntent = android.app.PendingIntent.getActivity(
-                                context, 
-                                dateStr.hashCode(), 
-                                intent, 
-                                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                            )
-                            setOnClickPendingIntent(viewIds[i], pendingIntent)
-                        }
+                for (i in viewIds.indices) {
+                    val value = payload.values[i]
+                    val color = when (value) {
+                        0 -> Color.parseColor("#1AFFFFFF")
+                        in 1..2 -> Color.parseColor("#59D4AF37")
+                        else -> Color.parseColor("#FFD4AF37")
                     }
-                } catch (e: Exception) {
-                    // Ignore JSON parsing errors
+                    setInt(viewIds[i], "setBackgroundColor", color)
+
+                    val date = payload.dates[i] ?: continue
+                    val timestamp = System.currentTimeMillis()
+                    val uri = Uri.parse("storysync://insights?date=$date&t=$timestamp")
+                    val pendingIntent =
+                        HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, uri)
+                    setOnClickPendingIntent(viewIds[i], pendingIntent)
+                }
+            }
+            appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+
+    private fun parseHeatmapPayload(
+        widgetData: SharedPreferences?,
+        cellCount: Int
+    ): HeatmapPayload? {
+        return try {
+            val heatmapString = widgetData?.getString("widget_heatmap_data", null) ?: return null
+            val datesString = widgetData.getString("widget_heatmap_dates", null) ?: return null
+
+            val heatmapArray = JSONArray(heatmapString)
+            val datesArray = JSONArray(datesString)
+            val values = IntArray(cellCount) { index ->
+                if (index < heatmapArray.length()) heatmapArray.optInt(index, 0) else 0
+            }
+            val dates = Array<String?>(cellCount) { index ->
+                if (index < datesArray.length()) {
+                    datesArray.optString(index).takeIf { it.isNotBlank() }
+                } else {
+                    null
                 }
             }
 
-            appWidgetManager.updateAppWidget(widgetId, views)
+            HeatmapPayload(values, dates)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun applyEmptyState(views: RemoteViews, viewIds: IntArray) {
+        val emptyColor = Color.parseColor("#1AFFFFFF")
+        viewIds.forEach { viewId ->
+            views.setInt(viewId, "setBackgroundColor", emptyColor)
         }
     }
 }

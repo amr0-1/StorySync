@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:storysync/core/native/widget_service.dart';
 import 'package:storysync/features/auth/screens/welcome_screen.dart';
 import 'package:storysync/features/details/screens/details_screen.dart';
 import 'package:storysync/features/discover/screens/discover_screen.dart';
@@ -16,6 +17,9 @@ class AppRouter {
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
       initialLocation: isFirstRun ? '/welcome' : '/library',
+      redirect: (context, state) {
+        return WidgetService.routeFromLaunchUri(state.uri);
+      },
       routes: [
         // Welcome route (outside shell) with fade-in transition
         GoRoute(

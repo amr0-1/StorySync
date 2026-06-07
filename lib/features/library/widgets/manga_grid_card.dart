@@ -12,7 +12,6 @@ import 'package:storysync/shared/widgets/chapter_badge.dart';
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
-import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 
 /// Grid card widget for displaying manga in grid view
 class MangaGridCard extends ConsumerStatefulWidget {
@@ -174,19 +173,13 @@ class _MangaGridCardState extends ConsumerState<MangaGridCard>
                   ),
                 ),
 
-                // Chapter badge - bottom left (uses ephemeral offset for instant feedback)
+                // Chapter badge - bottom left
                 Positioned(
                   left: 6,
                   bottom: 6,
-                  child: Builder(
-                    builder: (context) {
-                      final offsets = ref.watch(chapterOffsetProvider);
-                      final offset = offsets[widget.manga.mangaDexId] ?? 0;
-                      return ChapterBadge(
-                        current: widget.manga.currentChapter + offset,
-                        total: widget.manga.totalChapters,
-                      );
-                    },
+                  child: ChapterBadge(
+                    current: widget.manga.currentChapter,
+                    total: widget.manga.totalChapters,
                   ),
                 ),
 

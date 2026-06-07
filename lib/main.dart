@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:storysync/core/providers/shared_prefs_provider.dart';
@@ -65,11 +69,70 @@ class StorySyncApp extends ConsumerStatefulWidget {
 }
 
 class _StorySyncAppState extends ConsumerState<StorySyncApp> {
+  GoRouter? _router;
+  StreamSubscription<Uri?>? _widgetClickSubscription;
+  String? _pendingWidgetRoute;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _widgetClickSubscription = HomeWidget.widgetClicked.listen(
+      _handleHomeWidgetLaunch,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_handleInitialHomeWidgetLaunch());
+    });
+  }
+
+  @override
+  void dispose() {
+    _widgetClickSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _handleInitialHomeWidgetLaunch() async {
+    final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (!mounted) return;
+    _handleHomeWidgetLaunch(uri);
+  }
+
+  void _handleHomeWidgetLaunch(Uri? uri) {
+    final route = WidgetService.routeFromLaunchUri(uri);
+    if (route == null) return;
+
+    final router = _router;
+    if (router == null) {
+      _pendingWidgetRoute = route;
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      router.go(route);
+    });
+  }
+
+  void _flushPendingWidgetRoute() {
+    final router = _router;
+    final route = _pendingWidgetRoute;
+    if (router == null || route == null) return;
+
+    _pendingWidgetRoute = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      router.go(route);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
     final isFirstRun = ref.watch(isFirstRunProvider);
+    final router = AppRouter.createRouter(isFirstRun);
+    _router = router;
+    _flushPendingWidgetRoute();
 
     // Phase 14: Adaptive theme — shifts palette based on user state
     final adaptiveColors = ref.watch(adaptiveColorsProvider);
@@ -93,7 +156,7 @@ class _StorySyncAppState extends ConsumerState<StorySyncApp> {
       themeMode: themeMode,
 
       // Router configuration
-      routerConfig: AppRouter.createRouter(isFirstRun),
+      routerConfig: router,
 
       // Dynamically set system UI overlay style based on resolved brightness
       builder: (context, child) {
@@ -120,5 +183,4 @@ class _StorySyncAppState extends ConsumerState<StorySyncApp> {
       },
     );
   }
-
 }

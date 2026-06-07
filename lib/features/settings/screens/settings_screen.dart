@@ -1,10 +1,12 @@
 import 'dart:convert';
-import 'package:go_router/go_router.dart';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:isar/isar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
@@ -15,6 +17,9 @@ import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/core/utils/snackbar_util.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
+import 'package:storysync/core/providers/walkthrough_keys_provider.dart';
+import 'package:storysync/core/providers/database_state_provider.dart';
+import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
 
 /// Settings screen with theme, data management, and account options
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -115,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: AppDimensions.space4),
                 Text(
-                  'Version 1.0.0',
+                  'Version 1.1.0',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: colors.textHint,
                   ),
@@ -235,7 +240,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'version': '2.0.0',
       };
 
-      final String jsonString = jsonEncode(exportData);
+      // Move the massive string serialization to a background thread
+      final String jsonString = await Isolate.run(() => jsonEncode(exportData));
 
       final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString));
 
@@ -279,6 +285,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleImport() async {
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -286,71 +293,146 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
 
       if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
-        final String jsonString = await file.readAsString();
-        final Map<String, dynamic> decoded = jsonDecode(jsonString);
+        final pureFilePath = result.files.single.path!;
 
-        final isarService = ref.read(isarServiceProvider);
+        if (!mounted) return;
 
-        int importedMangaCount = 0;
-        int importedLogCount = 0;
+        // ---------------------------------------------------------
+        // FIX: THE YIELD MUST COME FIRST
+        // Force the main thread to idle so the Android OS can fully
+        // recreate the Vulkan graphics surface. Do absolutely NOTHING
+        // with the UI or State until this completes.
+        // ---------------------------------------------------------
+        await Future.delayed(const Duration(milliseconds: 600));
 
-        // ── Step 1: Upsert all MangaItems first ────────────────
-        final Set<String> validMangaDexIds = {};
-        if (decoded.containsKey('manga')) {
-          final List<dynamic> mangaList = decoded['manga'] as List<dynamic>;
-          for (var map in mangaList) {
-            try {
-              final mangaItem = MangaItem.fromJson(map as Map<String, dynamic>);
-              await isarService.saveManga(mangaItem);
-              validMangaDexIds.add(mangaItem.mangaDexId);
-              importedMangaCount++;
-            } catch (e) {
-              continue;
-            }
+        if (!mounted) return;
+
+        // 1. ENGAGE BLINDFOLD: Tell all Riverpod streams to shut down
+        ref.read(isRestoringDatabaseProvider.notifier).state = true;
+
+        // 2. NOW IT IS SAFE TO PAINT THE UI
+        _showRestoreLoadingOverlay();
+
+        // 3. LAUNCH THE ISOLATE (Using the pure top-level wrapper)
+        final BackupData backup = await processBackupInIsolate(pureFilePath);
+
+        final isar = await ref.read(isarServiceProvider).openDB();
+
+        // 4. BATCH INSERTS ON MAIN THREAD (I/O Heavy - Handled async by Isar)
+        await clearRestoredDatabase(isar);
+
+        const batchSize = 250;
+
+        if (backup.manga.isNotEmpty) {
+          for (var i = 0; i < backup.manga.length; i += batchSize) {
+            final end = (i + batchSize < backup.manga.length)
+                ? i + batchSize
+                : backup.manga.length;
+            final batch = backup.manga.sublist(i, end);
+
+            // Use async writeTxn and putAll. This allows Isar to handle the DB
+            // lock asynchronously without halting the Flutter event loop.
+            await restoreMangaBatch(isar, batch);
+
+            // The micro-yield allows Riverpod watchers to process the new data
+            // and the UI to render frames before the next batch locks the DB.
+            await Future.delayed(const Duration(milliseconds: 16));
           }
         }
 
-        // ── Step 2: Restore reading logs with integrity check ──
-        // Only imports logs whose mangaDexId references a valid MangaItem.
-        // Preserves original isImported/isPastReading flags so analytics
-        // mirrors the original state exactly after a backup→restore cycle.
-        if (decoded.containsKey('readingLogs')) {
-          final List<dynamic> logsList =
-              decoded['readingLogs'] as List<dynamic>;
-          final List<ReadingLog> logs = [];
-          for (var map in logsList) {
-            try {
-              logs.add(ReadingLog.fromJson(map as Map<String, dynamic>));
-            } catch (e) {
-              continue;
-            }
-          }
+        if (backup.logs.isNotEmpty) {
+          for (var i = 0; i < backup.logs.length; i += batchSize) {
+            final end = (i + batchSize < backup.logs.length)
+                ? i + batchSize
+                : backup.logs.length;
+            final batch = backup.logs.sublist(i, end);
 
-          if (logs.isNotEmpty) {
-            importedLogCount = await isarService
-                .restoreReadingLogsWithIntegrity(logs, validMangaDexIds);
+            await restoreReadingLogBatch(isar, batch);
+
+            await Future.delayed(const Duration(milliseconds: 16));
           }
         }
+
+        // Remove blindfold and force fresh UI rebuild
+        ref.read(isRestoringDatabaseProvider.notifier).state = false;
+
+        if (mounted && rootNavigator.canPop()) {
+          rootNavigator.pop();
+        }
+
+        ref.invalidate(isarInitProvider);
+        resetWalkthroughKeys(ref);
+        ref.invalidate(libraryControllerProvider);
 
         if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              VoidInkSnackbar.showSuccess(
-                context,
-                'Imported $importedMangaCount titles & $importedLogCount logs',
-              );
-            }
-          });
+          VoidInkSnackbar.showSuccess(
+            context,
+            'Library restored successfully!',
+          );
         }
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('DEBUG: Restore error: $e\n$st');
+      if (mounted && rootNavigator.canPop()) {
+        rootNavigator.pop();
+      }
+      ref.read(isRestoringDatabaseProvider.notifier).state = false;
+
       if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) VoidInkSnackbar.showError(context, 'Import failed: $e');
-        });
+        VoidInkSnackbar.showError(
+          context,
+          'Restore failed: Corrupted file or database lock.',
+        );
       }
     }
+  }
+
+  /// Shows a non-dismissible loading overlay during restore.
+  void _showRestoreLoadingOverlay() {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(AppDimensions.space24),
+            decoration: BoxDecoration(
+              color: colors.inkSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMD),
+              border: Border.all(
+                color: colors.inkBorder,
+                width: AppDimensions.borderThin,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.goldSpark),
+                  strokeWidth: 2,
+                ),
+                const SizedBox(height: AppDimensions.space16),
+                Text(
+                  'Restoring backup…',
+                  style: AppTextStyles.titleSmall.copyWith(
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.space4),
+                Text(
+                  'Do not close the app',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleClearCache() {
@@ -409,4 +491,107 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       },
     );
   }
+}
+
+// A simple container class to return both lists from the isolate.
+class BackupData {
+  final List<MangaItem> manga;
+  final List<ReadingLog> logs;
+  BackupData(this.manga, this.logs);
+}
+
+Future<BackupData> processBackupInIsolate(String filePath) {
+  // This top-level wrapper only captures the file path string.
+  return Isolate.run(() => parseBackupData(filePath));
+}
+
+Future<void> clearRestoredDatabase(Isar isar) {
+  return isar.writeTxn(() async {
+    await isar.clear();
+  });
+}
+
+Future<void> restoreMangaBatch(Isar isar, List<MangaItem> batch) {
+  return isar.writeTxn(() async {
+    await isar.mangaItems.putAll(batch);
+  });
+}
+
+Future<void> restoreReadingLogBatch(Isar isar, List<ReadingLog> batch) {
+  return isar.writeTxn(() async {
+    await isar.readingLogs.putAll(batch);
+  });
+}
+
+// Completely outside any class to be a pure top-level function
+Future<BackupData> parseBackupData(String filePath) async {
+  final String jsonString = await File(filePath).readAsString();
+  final Map<String, dynamic> decoded = jsonDecode(jsonString);
+
+  List<MangaItem> parsedManga = [];
+  List<ReadingLog> parsedLogs = [];
+  final Set<String> validMangaDexIds = {};
+
+  if (decoded.containsKey('manga')) {
+    for (var map in decoded['manga'] as List<dynamic>) {
+      try {
+        final mangaMap = map as Map<String, dynamic>;
+
+        // BACKWARD COMPATIBILITY FIX:
+        // Manually inject default values for new/legacy fields if they are missing
+        mangaMap['mangaDexId'] = mangaMap['mangaDexId'] ?? '';
+        mangaMap['title'] = mangaMap['title'] ?? 'Unknown Title';
+        mangaMap['source'] = mangaMap['source'] ?? 'mangadex';
+        mangaMap['hasCustomMetadata'] = mangaMap['hasCustomMetadata'] ?? false;
+        mangaMap['chapterProgress'] = mangaMap['chapterProgress'] ?? 0;
+        mangaMap['readingStatus'] = mangaMap['readingStatus'] ?? 'planToRead';
+
+        if ((mangaMap['mangaDexId'] as String).isEmpty) {
+          continue;
+        }
+
+        final item = MangaItem.fromJson(mangaMap);
+        parsedManga.add(item);
+        validMangaDexIds.add(item.mangaDexId);
+      } catch (e, st) {
+        // USE standard print() IN ISOLATES! debugPrint can crash isolates.
+        // ignore: avoid_print
+        print('Skipping outdated/corrupted MangaItem: $e\n$st');
+        continue;
+      }
+    }
+  }
+
+  if (decoded.containsKey('readingLogs')) {
+    for (var map in decoded['readingLogs'] as List<dynamic>) {
+      try {
+        final logMap = map as Map<String, dynamic>;
+
+        // Inject default values for readingLog fields
+        logMap['date'] = logMap['date'] ?? DateTime.now().toIso8601String();
+        logMap['mangaDexId'] = logMap['mangaDexId'] ?? '';
+        logMap['chaptersRead'] = logMap['chaptersRead'] ?? 1;
+        logMap['sessionDurationMinutes'] =
+            logMap['sessionDurationMinutes'] ?? 0;
+        logMap['isImported'] = logMap['isImported'] ?? false;
+        logMap['isPastReading'] = logMap['isPastReading'] ?? false;
+
+        if ((logMap['mangaDexId'] as String).isEmpty) {
+          continue;
+        }
+
+        final log = ReadingLog.fromJson(logMap);
+        if (validMangaDexIds.contains(log.mangaDexId)) {
+          parsedLogs.add(log);
+        }
+      } catch (e, st) {
+        // USE standard print() IN ISOLATES! debugPrint can crash isolates.
+        // ignore: avoid_print
+        print('Skipping outdated/corrupted ReadingLog: $e\n$st');
+        continue;
+      }
+    }
+  }
+
+  return BackupData(parsedManga, parsedLogs);
 }

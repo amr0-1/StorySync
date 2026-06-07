@@ -10,7 +10,6 @@ import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/shared/widgets/deep_press_card.dart';
 import 'package:storysync/shared/widgets/reading_state_wrapper.dart';
 import 'package:storysync/shared/widgets/status_badge.dart';
-import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 
 /// List tile widget for displaying manga in list view
 class MangaListTile extends ConsumerWidget {
@@ -37,12 +36,7 @@ class MangaListTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
-
-    // Read ephemeral offset for instant chapter display
-    final offsets = ref.watch(chapterOffsetProvider);
-    final offset = offsets[manga.mangaDexId] ?? 0;
-
-    Widget tile = _buildTileContent(colors, offset);
+    Widget tile = _buildTileContent(colors);
 
     // Wrap in reading state wrapper for cold/hot animations
     if (readingState != ReadingState.normal) {
@@ -56,8 +50,7 @@ class MangaListTile extends ConsumerWidget {
     // Wrap in deep press for tap feedback
     return DeepPressCard(onTap: onTap, child: tile);
   }
-
-  Widget _buildTileContent(VoidInkColors colors, int offset) {
+  Widget _buildTileContent(VoidInkColors colors) {
     return Container(
       height: 82,
       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.space16),
@@ -114,14 +107,13 @@ class MangaListTile extends ConsumerWidget {
               ],
             ),
           ),
-
-          // Chapter counter (uses ephemeral offset for instant feedback)
+          // Chapter counter
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${manga.currentChapter + offset}',
+                '${manga.currentChapter}',
                 style: AppTextStyles.monoMedium.copyWith(
                   color: colors.goldSpark,
                 ),

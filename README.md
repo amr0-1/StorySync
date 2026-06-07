@@ -22,10 +22,10 @@ To see StorySync in action, read on or check out the [Releases](https://github.c
 - **Reading Intelligence & Insights:** Forget basic lists. Access a 35-day interactive heatmap of your chapter activity alongside real-time metrics detailing read velocity, streak detection, and custom personality designations based on your schedule.
 - **Intelligent Alert Protections:** An advanced context-aware warning system ensures your daily pace data doesn’t corrupt historic behavioral heat maps.
 - **Zero-Friction JSON Portability:** Moving devices? No accounts, cloud sync, or telemetry required. Generate clean JSON exports of your entire library and tracking data.
-- **Native iOS & Android Widgets:** Real-time tracking dashboards deployed directly to your iOS and Android home screens.
+- **Native Android Widgets:** Real-time tracking dashboards deployed directly to your Android home screen.
 
 
-_(We highly recommend downloading the latest APK/IPA from the [Releases](https://github.com/amr0-1/storysync/releases) section to experience the 120hz interaction design.)_
+_(We highly recommend downloading the latest APK from the [Releases](https://github.com/amr0-1/storysync/releases) section to experience the 120hz interaction design.)_
 
 ## 🚀 Getting Started
 
@@ -81,9 +81,7 @@ StorySync is built around a modern local-first architecture focused on performan
 ## ⚠ Current Development Status
 
 StorySync is under active development by a solo developer.  
-Most core systems are stable and production-ready for daily use, though a few minor issues related to native iOS/Android home screen widgets are still being refined.
-
-Because widget integrations rely heavily on platform-specific native behavior, resolving these edge cases has taken longer than initially anticipated. Stability, performance, and long-term maintainability are being prioritized over rushed fixes.
+Most core systems are stable and production-ready for daily use. The native Android home screen widgets are fully integrated and working without any issues. If you encounter any problems, please feel free to open a ticket in the [Issues](https://github.com/amr0-1/storysync/issues) section of the repository.
 
 Additionally, chapter progress tracking currently requires manual value adjustments when increasing or decreasing chapter counts. This exists due to limitations within the currently integrated public API, which does not reliably expose all progression metadata required for fully automated synchronization.
 

@@ -35,7 +35,7 @@ Dio _createDioClient() {
       connectTimeout: const Duration(milliseconds: _connectTimeout),
       receiveTimeout: const Duration(milliseconds: _receiveTimeout),
       headers: {
-        'User-Agent': 'StorySync/1.0.0 (Flutter; Manga Tracker)',
+        'User-Agent': 'StorySync/1.1.0 (Flutter; Manga Tracker)',
         'Accept': 'application/json',
       },
       responseType: ResponseType.json,

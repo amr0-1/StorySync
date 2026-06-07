@@ -3,6 +3,7 @@ import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/core/models/reading_state.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
+import 'package:storysync/core/providers/database_state_provider.dart';
 
 /// Computes [ReadingState] for each manga in the "Reading" tab.
 ///
@@ -16,6 +17,10 @@ import 'package:storysync/features/library/presentation/controllers/library_cont
 final readingStatesProvider = FutureProvider<Map<String, ReadingState>>((
   ref,
 ) async {
+  // Silently abort the heavy query if a restore is running.
+  // Because the UI is behind a loading dialog, returning an empty map is harmless.
+  if (ref.read(isRestoringDatabaseProvider)) return {};
+
   // Watch library controller to auto-recompute when data changes
   final libraryAsync = ref.watch(libraryControllerProvider);
 

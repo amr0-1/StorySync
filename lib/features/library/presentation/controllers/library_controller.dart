@@ -208,3 +208,11 @@ Stream<List<MangaItem>> libraryByStatus(
   final isarService = ref.watch(isarServiceProvider);
   return isarService.watchMangaByStatus(status);
 }
+
+/// StreamProvider that watches a single manga by MangaDex ID.
+final mangaByIdProvider = StreamProvider.family.autoDispose<MangaItem?, String>(
+  (ref, mangaDexId) {
+    final isarService = ref.watch(isarServiceProvider);
+    return isarService.watchMangaByMangaDexId(mangaDexId);
+  },
+);

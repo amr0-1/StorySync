@@ -755,7 +755,7 @@ _Implemented: 2026-04-06_
     - Base URL: `https://api.mangadex.org`
     - Connect timeout: 15 seconds
     - Receive timeout: 30 seconds
-    - Custom User-Agent: `StorySync/1.0.0 (Flutter; Manga Tracker)`
+    - Custom User-Agent: `StorySync/1.1.0 (Flutter; Manga Tracker)`
   - **Interceptors:**
     - `LogInterceptor` — debug-only logging via `assert()` guard
     - Error transformation for timeout/rate-limit scenarios

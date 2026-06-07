@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:isar/isar.dart';
 
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/analytics/engine/analytics_models_v2.dart';
@@ -10,74 +11,72 @@ import 'package:storysync/features/analytics/engine/session_analyzer.dart';
 import 'package:storysync/features/insights/data/analytics_engine.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/data/models/reading_log.dart';
+import 'package:storysync/core/providers/database_state_provider.dart';
 
 // ════════════════════════════════════════════════════════════════════
 // Isolate-safe payload & computation
 // ════════════════════════════════════════════════════════════════════
 
-/// Payload for passing data across the isolate boundary.
-///
-/// Contains raw lists — the isolate function aggregates and computes
-/// everything from scratch (no shared state).
+/// Payload only carries the directory path. The Isolate fetches its own data.
 class _V2ComputePayload {
-  final List<ReadingLog> logs;
-  final List<MangaItem> manga;
-  const _V2ComputePayload(this.logs, this.manga);
+  final String dirPath;
+  const _V2ComputePayload(this.dirPath);
 }
 
 /// Top-level function executed inside `compute()`.
-///
-/// MUST be top-level (not a closure) for Dart isolate serialization.
-/// Orchestrates the full V2 analytics pipeline:
-/// 1. Aggregate with time-of-day bucketing
-/// 2. Compute streaks (reuse existing engine)
-/// 3. Build DNA profile (efficiency + archetype + habit loop)
-/// 4. Run predictive analysis (finish estimate + drop-off + lifecycle)
-/// 5. Analyze session state (fatigue + mood)
-/// 6. Merge into unified [AnalyticsSnapshotV2]
 Future<AnalyticsSnapshotV2> _computeV2Snapshot(
   _V2ComputePayload payload,
 ) async {
-  // ── Step 1: Aggregate with time-of-day bucketing ─────────────
-  final agg = _aggregateV2(payload.logs);
-
-  // ── Step 2: Compute streaks via the existing V1 engine ───────
-  // We reuse AnalyticsEngine.calculateStreaks() which expects the
-  // V1 AggregatedLogs format. Building it is cheap (shared filter).
-  const existingEngine = AnalyticsEngine();
-  final legacyAgg = existingEngine.aggregate(payload.logs);
-  final streaks = existingEngine.calculateStreaks(legacyAgg);
-
-  // ── Step 3: DNA Profile ──────────────────────────────────────
-  const dnaEngine = ReadingDnaEngine();
-  final dna = dnaEngine.buildProfile(agg, streaks);
-
-  // ── Step 4: Predictive Snapshot ──────────────────────────────
-  const predictiveEngine = PredictiveEngine();
-  final predictive = predictiveEngine.analyze(agg, payload.manga);
-
-  // ── Step 5: Session / User State ─────────────────────────────
-  const sessionAnalyzer = SessionAnalyzer();
-  final rawState = sessionAnalyzer.analyze(agg);
-
-  // Merge the actual efficiency score (from DNA) into UserState
-  final userState = UserState(
-    fatigue: rawState.fatigue,
-    mood: rawState.mood,
-    efficiencyScore: dna.efficiency.overall,
-    stateLabel: rawState.stateLabel,
+  // 1. Open Isar safely inside the background thread
+  var isar = Isar.getInstance('storysync_db');
+  isar ??= await Isar.open(
+    [MangaItemSchema, ReadingLogSchema],
+    directory: payload.dirPath,
+    name: 'storysync_db',
   );
 
-  return AnalyticsSnapshotV2(
-    dna: dna,
-    predictive: predictive,
-    userState: userState,
-    hourlyDistribution: agg.hourlyTotals,
-    weekdayDistribution: agg.weekdayTotals,
-    dailyTotals: agg.dailyTotals,
-    currentStreak: streaks.current,
-    longestStreak: streaks.longest,
-  );
+  try {
+    // 2. Fetch the massive lists ENTIRELY off the main thread
+    final logs = isar.readingLogs.where().findAllSync();
+    final manga = isar.mangaItems.where().findAllSync();
+
+    // 3. Aggregate and Compute
+    final agg = _aggregateV2(logs);
+    const existingEngine = AnalyticsEngine();
+    final legacyAgg = existingEngine.aggregate(logs);
+    final streaks = existingEngine.calculateStreaks(legacyAgg);
+
+    const dnaEngine = ReadingDnaEngine();
+    final dna = dnaEngine.buildProfile(agg, streaks);
+
+    const predictiveEngine = PredictiveEngine();
+    final predictive = predictiveEngine.analyze(agg, manga);
+
+    const sessionAnalyzer = SessionAnalyzer();
+    final rawState = sessionAnalyzer.analyze(agg);
+
+    final userState = UserState(
+      fatigue: rawState.fatigue,
+      mood: rawState.mood,
+      efficiencyScore: dna.efficiency.overall,
+      stateLabel: rawState.stateLabel,
+    );
+
+    return AnalyticsSnapshotV2(
+      dna: dna,
+      predictive: predictive,
+      userState: userState,
+      hourlyDistribution: agg.hourlyTotals,
+      weekdayDistribution: agg.weekdayTotals,
+      dailyTotals: agg.dailyTotals,
+      currentStreak: streaks.current,
+      longestStreak: streaks.longest,
+    );
+  } finally {
+    // Detach isolate from native DB when done (do not close, just dereference)
+    // Isar.getInstance instances shouldn't be forcefully closed if the main thread is using them,
+    // but the Dart GC will clean up the local pointer.
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -160,17 +159,29 @@ AggregatedLogsV2 _aggregateV2(List<ReadingLog> rawLogs) {
 /// );
 /// ```
 final analyticsV2SnapshotProvider =
-    StreamProvider<AnalyticsSnapshotV2>((ref) {
+    StreamProvider<AnalyticsSnapshotV2>((ref) async* {
   final isarService = ref.watch(isarServiceProvider);
+  final dirPath = await isarService.getDbDirectory();
 
-  return Rx.combineLatest2<List<ReadingLog>, List<MangaItem>,
-      _V2ComputePayload>(
-    isarService.watchAllReadingLogs(),
-    isarService.watchAllManga(),
-    (logs, manga) => _V2ComputePayload(logs, manga),
-  ).asyncMap((payload) async {
+  // Combine the lazy "doorbells" (Stream<void>)
+  final stream = Rx.combineLatest2<void, void, _V2ComputePayload>(
+    isarService.watchReadingLogChanges(),
+    isarService.watchMangaChanges(),
+    (_, _) => _V2ComputePayload(dirPath),
+  )
+  // The Brick Wall: Ignore triggers during a database restore
+  .where((_) {
+    final isRestoring = ref.read(isRestoringDatabaseProvider);
+    return !isRestoring;
+  })
+  // The Shock Absorber: Wait for rapid micro-transactions to finish
+  .debounceTime(const Duration(milliseconds: 500))
+  .asyncMap((payload) async {
+    // Spawn the isolate. Main thread does zero heavy lifting.
     return await compute(_computeV2Snapshot, payload);
   });
+
+  yield* stream;
 });
 
 /// Convenience provider exposing just the [DnaProfile].

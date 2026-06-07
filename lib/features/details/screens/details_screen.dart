@@ -7,7 +7,6 @@ import 'package:storysync/core/network/image_cache_manager.dart';
 import 'package:storysync/features/discover/presentation/controllers/discover_controller.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/presentation/controllers/library_controller.dart';
-import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
@@ -148,7 +147,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
     }
 
-    final manga = _manga!;
+    final watchedManga = _isInLibrary
+        ? ref.watch(mangaByIdProvider(widget.mangaId)).value
+        : null;
+    final manga = watchedManga ?? _manga!;
 
     final String paletteKey = '${manga.mangaDexId}|${manga.coverUrl}';
     final AsyncValue<Color?> paletteColor = ref.watch(
@@ -428,18 +430,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     }
   }
 
-  /// Updates chapter progress via the debounced controller for increments
-  /// (zero-latency UI + batched DB write at 800ms idle), and via direct
-  /// libraryController for decrements (not a rapid-tap scenario).
+  /// Updates chapter progress
   Future<void> _updateChapter(MangaItem manga, int newChapter) async {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
     final currentChapter = manga.chapterProgress;
 
     if (newChapter > currentChapter) {
-      // Incrementing — use debounced controller for instant UI + batched write
       final accepted = await ref
-          .read(chapterOffsetProvider.notifier)
-          .increment(manga.mangaDexId);
+          .read(libraryControllerProvider.notifier)
+          .incrementChapter(manga.mangaDexId);
 
       if (!accepted && mounted) {
         final todayCount = await ref
@@ -493,14 +492,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             await ref
                 .read(libraryControllerProvider.notifier)
                 .confirmAndIncrementChapter(manga.mangaDexId, isPastReading);
-            _refreshMangaData();
           }
         } else {
           VoidInkSnackbar.showError(context, 'Already at max chapters');
         }
       }
-      // No need to call _refreshMangaData on success — the ephemeral offset
-      // provides instant UI feedback, and Isar stream will update on flush.
     } else if (newChapter < currentChapter) {
       // Decrementing — direct call (not a rapid-tap scenario)
       final success = await ref
@@ -508,9 +504,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           .decrementChapter(manga.mangaDexId);
 
       if (mounted) {
-        if (success) {
-          _refreshMangaData();
-        } else {
+        if (!success) {
           VoidInkSnackbar.showError(context, 'Already at 0 chapters');
         }
       }
@@ -894,10 +888,7 @@ class _AddToLibraryButton extends StatelessWidget {
 }
 
 /// Tracker console displaying status dropdown and chapter stepper.
-///
-/// ConsumerWidget so it can watch [chapterOffsetProvider] for instant
-/// UI feedback on rapid +1 taps (ephemeral offset from debounced controller).
-class _TrackerConsole extends ConsumerWidget {
+class _TrackerConsole extends StatelessWidget {
   final MangaItem manga;
   final VoidInkColors colors;
   final ValueChanged<ReadingStatus> onStatusChanged;
@@ -911,11 +902,8 @@ class _TrackerConsole extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Watch ephemeral offset for instant chapter display
-    final offsets = ref.watch(chapterOffsetProvider);
-    final offset = offsets[manga.mangaDexId] ?? 0;
-    final effectiveChapter = manga.chapterProgress + offset;
+  Widget build(BuildContext context) {
+    final effectiveChapter = manga.chapterProgress;
 
     return Container(
       padding: const EdgeInsets.all(AppDimensions.space16),

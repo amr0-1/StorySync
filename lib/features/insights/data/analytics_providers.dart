@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:isar/isar.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/insights/data/analytics_engine.dart';
 import 'package:storysync/features/insights/data/analytics_models.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
 import 'package:storysync/features/library/data/models/reading_log.dart';
+import 'package:storysync/core/providers/database_state_provider.dart';
 
 /// Provider for the analytics engine (stateless, constant).
 final analyticsEngineProvider = Provider<AnalyticsEngine>((ref) {
@@ -13,46 +15,59 @@ final analyticsEngineProvider = Provider<AnalyticsEngine>((ref) {
 });
 
 class _ComputePayload {
-  final List<ReadingLog> logs;
-  final List<MangaItem> manga;
-  const _ComputePayload(this.logs, this.manga);
+  final String dirPath;
+  const _ComputePayload(this.dirPath);
 }
 
 Future<AnalyticsSnapshot> _computeSnapshot(_ComputePayload payload) async {
-  const engine = AnalyticsEngine();
-
-  // Pre-aggregate once (filters out isImported + isPastReading)
-  final agg = engine.aggregate(payload.logs);
-
-  // Compute all analytics from the shared aggregation
-  final streaks = engine.calculateStreaks(agg);
-  final rhythm = engine.detectRhythm(agg, streaks);
-  final velocity = engine.calculateVelocity(agg);
-  final titleAnalytics = engine.getTitleAnalytics(agg, payload.manga);
-  final insights = engine.generateInsights(
-    agg,
-    streaks,
-    velocity,
-    titleAnalytics,
-  );
-  final (personalityTitle, personalitySubtitle) = engine.derivePersonality(
-    rhythm,
+  var isar = Isar.getInstance('storysync_db');
+  isar ??= await Isar.open(
+    [MangaItemSchema, ReadingLogSchema],
+    directory: payload.dirPath,
+    name: 'storysync_db',
   );
 
-  final totalChapters = agg.dailyTotals.values.fold<int>(0, (a, b) => a + b);
+  try {
+    final logs = isar.readingLogs.where().findAllSync();
+    final manga = isar.mangaItems.where().findAllSync();
 
-  return AnalyticsSnapshot(
-    streaks: streaks,
-    rhythm: rhythm,
-    velocity: velocity,
-    titleAnalytics: titleAnalytics,
-    insights: insights,
-    personalityTitle: personalityTitle,
-    personalitySubtitle: personalitySubtitle,
-    dailyTotals: agg.dailyTotals,
-    librarySize: payload.manga.length,
-    totalChaptersLogged: totalChapters,
-  );
+    const engine = AnalyticsEngine();
+
+    // Pre-aggregate once (filters out isImported + isPastReading)
+    final agg = engine.aggregate(logs);
+
+    // Compute all analytics from the shared aggregation
+    final streaks = engine.calculateStreaks(agg);
+    final rhythm = engine.detectRhythm(agg, streaks);
+    final velocity = engine.calculateVelocity(agg);
+    final titleAnalytics = engine.getTitleAnalytics(agg, manga);
+    final insights = engine.generateInsights(
+      agg,
+      streaks,
+      velocity,
+      titleAnalytics,
+    );
+    final (personalityTitle, personalitySubtitle) = engine.derivePersonality(
+      rhythm,
+    );
+
+    final totalChapters = agg.dailyTotals.values.fold<int>(0, (a, b) => a + b);
+
+    return AnalyticsSnapshot(
+      streaks: streaks,
+      rhythm: rhythm,
+      velocity: velocity,
+      titleAnalytics: titleAnalytics,
+      insights: insights,
+      personalityTitle: personalityTitle,
+      personalitySubtitle: personalitySubtitle,
+      dailyTotals: agg.dailyTotals,
+      librarySize: manga.length,
+      totalChaptersLogged: totalChapters,
+    );
+  } finally {
+    // Dart GC will clean up the local pointer.
+  }
 }
 
 /// The single source of truth for the Insights UI.
@@ -63,17 +78,26 @@ Future<AnalyticsSnapshot> _computeSnapshot(_ComputePayload payload) async {
 ///
 /// This fixes the reactivity bug where adding a new title required
 /// an app restart to appear in the Insights heatmap.
-final analyticsSnapshotProvider = StreamProvider<AnalyticsSnapshot>((ref) {
+final analyticsSnapshotProvider = StreamProvider<AnalyticsSnapshot>((ref) async* {
   final isarService = ref.watch(isarServiceProvider);
+  final dirPath = await isarService.getDbDirectory();
 
-  // Combine both streams — fires when EITHER collection changes
-  return Rx.combineLatest2<List<ReadingLog>, List<MangaItem>, _ComputePayload>(
-    isarService.watchAllReadingLogs(),
-    isarService.watchAllManga(),
-    (logs, manga) => _ComputePayload(logs, manga),
-  ).asyncMap((payload) async {
+  final stream = Rx.combineLatest2<void, void, _ComputePayload>(
+    isarService.watchReadingLogChanges(),
+    isarService.watchMangaChanges(),
+    (_, _) => _ComputePayload(dirPath),
+  )
+  // Apply the exact same Brick Wall and Shock Absorber to the legacy engine
+  .where((_) {
+    final isRestoring = ref.read(isRestoringDatabaseProvider);
+    return !isRestoring; 
+  })
+  .debounceTime(const Duration(milliseconds: 500))
+  .asyncMap((payload) async {
     return await compute(_computeSnapshot, payload);
   });
+
+  yield* stream;
 });
 
 /// Provider for day-detail data (triggered by heatmap tap).

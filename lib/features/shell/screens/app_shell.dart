@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:storysync/core/permissions/notification_permission_handler.dart';
+import 'package:storysync/core/services/walkthrough_service.dart';
 import 'package:storysync/core/theme/app_colors.dart';
 import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/features/analytics/engine/analytics_providers_v2.dart';
+
+import 'package:storysync/core/providers/walkthrough_keys_provider.dart';
 
 /// App shell with custom navigation bar and smooth tab transitions.
 ///
@@ -29,6 +32,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   /// SharedPreferences key — persists across sessions to avoid re-prompting.
   static const _permissionAskedKey = 'notif_permission_asked';
+  static const _walkthroughSeenKey = 'hasSeenWalkthrough';
 
   /// Instance guard to prevent duplicate dialogs within one session.
   bool _permissionCheckScheduled = false;
@@ -42,6 +46,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     // which is required by the custom BottomSheet inside the handler.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeRequestNotificationPermission();
+      _maybeShowWalkthrough();
     });
   }
 
@@ -77,6 +82,52 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  /// Shows the interactive walkthrough exactly once.
+  ///
+  /// Uses [SharedPreferences] to persist the seen-flag across sessions.
+  /// The tutorial is triggered via a second post-frame callback to ensure
+  /// the entire layout (including Library tab body) is fully rendered.
+  Future<void> _maybeShowWalkthrough() async {
+    if (!mounted) return;
+
+    // Wrap in try-catch: SharedPreferences may be momentarily
+    // unavailable during a V2 backup overwrite cycle.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final alreadySeen = prefs.getBool(_walkthroughSeenKey) ?? false;
+      if (alreadySeen) return;
+
+      if (!mounted) return;
+
+      void markSeen() {
+        prefs.setBool(_walkthroughSeenKey, true);
+      }
+
+      final keys = ref.read(walkthroughKeysProvider);
+
+      final targets = WalkthroughService.buildTargets(
+        addTitleKey: keys.addTitleKey,
+        quickIncrementKey: keys.quickIncrementKey,
+        analyticsHeatmapKey: keys.analyticsHeatmapKey,
+        backupSettingsKey: keys.backupSettingsKey,
+      );
+
+      final tutorial = WalkthroughService.create(
+        targets: targets,
+        onFinish: markSeen,
+        onSkip: markSeen,
+      );
+
+      // Small delay to let animations settle after first paint
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+
+      tutorial.show(context: context);
+    } catch (_) {
+      // Graceful fallback — skip walkthrough if prefs are unavailable
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
@@ -97,7 +148,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 }
 
 /// Custom navigation bar with Void Ink styling
-class _VoidInkNavBar extends StatelessWidget {
+class _VoidInkNavBar extends ConsumerWidget {
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
 
@@ -107,9 +158,10 @@ class _VoidInkNavBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final keys = ref.watch(walkthroughKeysProvider);
 
     return Container(
       height: AppDimensions.navBarHeight + bottomPadding,
@@ -143,6 +195,7 @@ class _VoidInkNavBar extends StatelessWidget {
                 label: 'Insights',
                 isSelected: currentIndex == 1,
                 onTap: () => onDestinationSelected(1),
+                navKey: keys.analyticsHeatmapKey,
               ),
             ),
 
@@ -163,6 +216,7 @@ class _VoidInkNavBar extends StatelessWidget {
                 label: 'Settings',
                 isSelected: currentIndex == 3,
                 onTap: () => onDestinationSelected(3),
+                navKey: keys.backupSettingsKey,
               ),
             ),
           ],
@@ -178,30 +232,34 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final Key? navKey;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.navKey,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
-    return InkWell(
+    final icon = Icon(
+      this.icon,
+      key: ValueKey<bool>(isSelected),
+      size: 22,
+      color: isSelected ? colors.goldSpark : colors.textSecondary,
+    );
+
+    final item = InkWell(
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            child: Icon(
-              icon,
-              key: ValueKey<bool>(isSelected),
-              size: 22,
-              color: isSelected ? colors.goldSpark : colors.textSecondary,
-            ),
+            child: icon,
           ),
           const SizedBox(height: AppDimensions.space4),
           AnimatedDefaultTextStyle(
@@ -214,5 +272,8 @@ class _NavItem extends StatelessWidget {
         ],
       ),
     );
+
+    if (navKey == null) return item;
+    return KeyedSubtree(key: navKey, child: item);
   }
 }

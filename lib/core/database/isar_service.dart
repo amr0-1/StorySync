@@ -312,6 +312,16 @@ class IsarService {
         .watch(fireImmediately: true);
   }
 
+  /// Watches a single manga item by its MangaDex ID.
+  Stream<MangaItem?> watchMangaByMangaDexId(String mangaDexId) async* {
+    final isar = await _db;
+    yield* isar.mangaItems
+        .filter()
+        .mangaDexIdEqualTo(mangaDexId)
+        .watch(fireImmediately: true)
+        .map((items) => items.isEmpty ? null : items.first);
+  }
+
   /// Watches all reading logs for changes.
   ///
   /// Returns a stream that emits whenever the reading log collection changes.
@@ -319,6 +329,24 @@ class IsarService {
   Stream<List<ReadingLog>> watchAllReadingLogs() async* {
     final isar = await _db;
     yield* isar.readingLogs.where().watch(fireImmediately: true);
+  }
+
+  /// Gets the DB directory path (Isolates cannot easily use path_provider)
+  Future<String> getDbDirectory() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return dir.path;
+  }
+
+  /// Acts as a doorbell for Manga changes (no data payload)
+  Stream<void> watchMangaChanges() async* {
+    final isar = await _db;
+    yield* isar.mangaItems.watchLazy(fireImmediately: true);
+  }
+
+  /// Acts as a doorbell for ReadingLog changes (no data payload)
+  Stream<void> watchReadingLogChanges() async* {
+    final isar = await _db;
+    yield* isar.readingLogs.watchLazy(fireImmediately: true);
   }
 
   // ============================================================

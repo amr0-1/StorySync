@@ -13,7 +13,8 @@ import 'package:storysync/core/utils/haptic_util.dart';
 import 'package:storysync/features/library/widgets/manga_grid_card.dart';
 import 'package:storysync/features/library/widgets/manga_list_tile.dart';
 import 'package:storysync/features/library/presentation/widgets/manual_add_dialog.dart';
-import 'package:storysync/features/library/presentation/controllers/debounced_chapter_controller.dart';
+import 'package:storysync/features/library/presentation/widgets/reading_empty_state.dart';
+import 'package:storysync/core/providers/walkthrough_keys_provider.dart';
 import 'package:storysync/shared/widgets/app_icon.dart';
 import 'package:storysync/shared/widgets/staggered_list_builder.dart';
 
@@ -79,6 +80,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         ),
         actions: [
           IconButton(
+            key: ref.watch(walkthroughKeysProvider).addTitleKey,
             icon: Icon(
               Icons.add_circle_outline_rounded,
               color: colors.textSecondary,
@@ -90,6 +92,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
             valueListenable: _isGridView,
             builder: (context, isGrid, _) {
               return IconButton(
+                key: ref.watch(walkthroughKeysProvider).quickIncrementKey,
                 icon: Icon(
                   isGrid ? Icons.list_rounded : Icons.grid_view_rounded,
                   color: colors.textSecondary,
@@ -106,35 +109,41 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           child: _LibraryTabBar(tabController: _tabController, colors: colors),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _LibraryContentWrapper(
-            status: ReadingStatus.reading,
-            isGridView: _isGridView,
-            colors: colors,
-          ),
-          _LibraryContentWrapper(
-            status: ReadingStatus.completed,
-            isGridView: _isGridView,
-            colors: colors,
-          ),
-          _LibraryContentWrapper(
-            status: ReadingStatus.onHold,
-            isGridView: _isGridView,
-            colors: colors,
-          ),
-          _LibraryContentWrapper(
-            status: ReadingStatus.planToRead,
-            isGridView: _isGridView,
-            colors: colors,
-          ),
-          _LibraryContentWrapper(
-            status: ReadingStatus.dropped,
-            isGridView: _isGridView,
-            colors: colors,
-          ),
-        ],
+      body: NotificationListener<LibraryTabNotification>(
+        onNotification: (notification) {
+          _tabController.animateTo(notification.tabIndex);
+          return true;
+        },
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _LibraryContentWrapper(
+              status: ReadingStatus.reading,
+              isGridView: _isGridView,
+              colors: colors,
+            ),
+            _LibraryContentWrapper(
+              status: ReadingStatus.completed,
+              isGridView: _isGridView,
+              colors: colors,
+            ),
+            _LibraryContentWrapper(
+              status: ReadingStatus.onHold,
+              isGridView: _isGridView,
+              colors: colors,
+            ),
+            _LibraryContentWrapper(
+              status: ReadingStatus.planToRead,
+              isGridView: _isGridView,
+              colors: colors,
+            ),
+            _LibraryContentWrapper(
+              status: ReadingStatus.dropped,
+              isGridView: _isGridView,
+              colors: colors,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -206,62 +215,73 @@ class _LibraryContentWrapperState extends ConsumerState<_LibraryContentWrapper>
         ? (readingStatesAsync?.valueOrNull ?? {})
         : <String, ReadingState>{};
 
+    Widget content;
+    final items = asyncMangaList.value;
+    if (items != null) {
+      if (items.isEmpty) {
+        content = widget.status == ReadingStatus.reading
+            ? ReadingEmptyState(
+                key: const ValueKey('reading_empty'),
+                colors: widget.colors,
+              )
+            : _EmptyState(
+                key: const ValueKey('empty'),
+                status: widget.status,
+                colors: widget.colors,
+              );
+      } else {
+        content = ValueListenableBuilder<bool>(
+          key: const ValueKey('data'),
+          valueListenable: widget.isGridView,
+          builder: (context, isGrid, _) {
+            return RefreshIndicator(
+              color: widget.colors.goldSpark,
+              backgroundColor: widget.colors.inkSurface,
+              onRefresh: () async {
+                StorySyncHaptics.mediumTap();
+                ref.invalidate(libraryByStatusProvider(widget.status));
+              },
+              child: isGrid
+                  ? _GridViewList(
+                      items: items,
+                      readingStates: readingStates,
+                      onDetails: (manga) =>
+                          context.push('/details/${manga.mangaDexId}'),
+                      onIncrement: (manga) =>
+                          _incrementChapter(context, ref, manga),
+                    )
+                  : _ListViewList(
+                      items: items,
+                      readingStates: readingStates,
+                      colors: widget.colors,
+                      onDetails: (manga) =>
+                          context.push('/details/${manga.mangaDexId}'),
+                      onIncrement: (manga) =>
+                          _incrementChapter(context, ref, manga),
+                    ),
+            );
+          },
+        );
+      }
+    } else if (asyncMangaList.hasError) {
+      content = _ErrorState(
+        key: const ValueKey('error'),
+        error: asyncMangaList.error.toString(),
+        colors: widget.colors,
+        onRetry: () => ref.invalidate(libraryByStatusProvider(widget.status)),
+      );
+    } else {
+      content = _ShimmerSkeleton(
+        key: const ValueKey('loading'),
+        colors: widget.colors,
+      );
+    }
+
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
-      child: asyncMangaList.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return _EmptyState(
-              key: const ValueKey('empty'),
-              status: widget.status,
-              colors: widget.colors,
-            );
-          }
-
-          return ValueListenableBuilder<bool>(
-            key: const ValueKey('data'),
-            valueListenable: widget.isGridView,
-            builder: (context, isGrid, _) {
-              return RefreshIndicator(
-                color: widget.colors.goldSpark,
-                backgroundColor: widget.colors.inkSurface,
-                onRefresh: () async {
-                  StorySyncHaptics.mediumTap();
-                  ref.invalidate(libraryByStatusProvider(widget.status));
-                },
-                child: isGrid
-                    ? _GridViewList(
-                        items: items,
-                        readingStates: readingStates,
-                        onDetails: (manga) =>
-                            context.push('/details/${manga.mangaDexId}'),
-                        onIncrement: (manga) =>
-                            _incrementChapter(context, ref, manga),
-                      )
-                    : _ListViewList(
-                        items: items,
-                        readingStates: readingStates,
-                        colors: widget.colors,
-                        onDetails: (manga) =>
-                            context.push('/details/${manga.mangaDexId}'),
-                        onIncrement: (manga) =>
-                            _incrementChapter(context, ref, manga),
-                      ),
-              );
-            },
-          );
-        },
-        loading: () =>
-            _ShimmerSkeleton(key: const ValueKey('loading'), colors: widget.colors),
-        error: (error, stack) => _ErrorState(
-          key: const ValueKey('error'),
-          error: error.toString(),
-          colors: widget.colors,
-          onRetry: () => ref.invalidate(libraryByStatusProvider(widget.status)),
-        ),
-      ),
+      child: content,
     );
   }
 
@@ -272,10 +292,10 @@ class _LibraryContentWrapperState extends ConsumerState<_LibraryContentWrapper>
   ) async {
     final colors = Theme.of(context).extension<VoidInkColors>()!;
 
-    // Use the debounced controller for instant UI + batched DB writes
+    // Direct DB write - Fire and Forget
     final accepted = await ref
-        .read(chapterOffsetProvider.notifier)
-        .increment(manga.mangaDexId);
+        .read(libraryControllerProvider.notifier)
+        .incrementChapter(manga.mangaDexId);
 
     if (!accepted && context.mounted) {
       // Check if it's the 50+ chapter guard or a max-chapter rejection
