@@ -37,6 +37,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// Instance guard to prevent duplicate dialogs within one session.
   bool _permissionCheckScheduled = false;
 
+  /// THE SHIELD: Prevents GlobalKey collisions during the initial layout paint.
+  /// Keys are only attached to nav items after the first frame settles.
+  bool _isNavReady = false;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +49,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     // This guarantees that `context` is valid and has a Navigator ancestor,
     // which is required by the custom BottomSheet inside the handler.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Drop the shield after the chaotic first frame finishes.
+        setState(() {
+          _isNavReady = true;
+        });
+      }
       _maybeRequestNotificationPermission();
       _maybeShowWalkthrough();
     });
@@ -136,6 +146,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       body: widget.navigationShell,
       bottomNavigationBar: _VoidInkNavBar(
         currentIndex: currentIndex,
+        isNavReady: _isNavReady,
         onDestinationSelected: (index) {
           widget.navigationShell.goBranch(
             index,
@@ -152,9 +163,14 @@ class _VoidInkNavBar extends ConsumerWidget {
   final int currentIndex;
   final ValueChanged<int> onDestinationSelected;
 
+  /// Shield flag — GlobalKeys are only attached after the first frame settles
+  /// to prevent duplicate-key errors during the initial layout paint.
+  final bool isNavReady;
+
   const _VoidInkNavBar({
     required this.currentIndex,
     required this.onDestinationSelected,
+    required this.isNavReady,
   });
 
   @override
@@ -195,7 +211,7 @@ class _VoidInkNavBar extends ConsumerWidget {
                 label: 'Insights',
                 isSelected: currentIndex == 1,
                 onTap: () => onDestinationSelected(1),
-                navKey: keys.analyticsHeatmapKey,
+                navKey: isNavReady ? keys.analyticsHeatmapKey : null,
               ),
             ),
 
@@ -216,7 +232,7 @@ class _VoidInkNavBar extends ConsumerWidget {
                 label: 'Settings',
                 isSelected: currentIndex == 3,
                 onTap: () => onDestinationSelected(3),
-                navKey: keys.backupSettingsKey,
+                navKey: isNavReady ? keys.backupSettingsKey : null,
               ),
             ),
           ],
