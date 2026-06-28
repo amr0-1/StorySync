@@ -5,15 +5,20 @@ import 'package:storysync/core/theme/app_text_styles.dart';
 
 /// Custom-built reading activity heatmap with threshold-based intensity,
 /// tap interaction, and weekly summary bar chart.
+///
+/// When [year] is provided, the grid renders a full calendar year
+/// (Jan 1 – Dec 31) instead of the trailing [daysToShow] window.
 class ReadingHeatmap extends StatelessWidget {
   final Map<DateTime, int> dailyTotals;
   final int daysToShow;
+  final int? year;
   final ValueChanged<DateTime>? onDayTapped;
 
   const ReadingHeatmap({
     super.key,
     required this.dailyTotals,
     this.daysToShow = 150,
+    this.year,
     this.onDayTapped,
   });
 
@@ -52,6 +57,7 @@ class ReadingHeatmap extends StatelessWidget {
                 child: _HeatmapGrid(
                   dailyTotals: dailyTotals,
                   daysToShow: daysToShow,
+                  year: year,
                   colors: colors,
                   onDayTapped: onDayTapped,
                 ),
@@ -246,12 +252,14 @@ class _WeeklySummaryBar extends StatelessWidget {
 class _HeatmapGrid extends StatelessWidget {
   final Map<DateTime, int> dailyTotals;
   final int daysToShow;
+  final int? year;
   final VoidInkColors colors;
   final ValueChanged<DateTime>? onDayTapped;
 
   const _HeatmapGrid({
     required this.dailyTotals,
     required this.daysToShow,
+    this.year,
     required this.colors,
     this.onDayTapped,
   });
@@ -260,8 +268,20 @@ class _HeatmapGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final endDate = today;
-    final startDate = today.subtract(Duration(days: daysToShow));
+
+    // Determine date bounds based on year vs. trailing window.
+    final DateTime startDate;
+    final DateTime endDate;
+    if (year != null) {
+      startDate = DateTime(year!, 1, 1);
+      // For a historical year, show full year; for current year, cap at today.
+      endDate = year! < today.year
+          ? DateTime(year!, 12, 31)
+          : today;
+    } else {
+      endDate = today;
+      startDate = today.subtract(Duration(days: daysToShow));
+    }
 
     // Calculate total weeks
     final totalDays = endDate.difference(startDate).inDays + 1;

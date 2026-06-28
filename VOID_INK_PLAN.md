@@ -1597,3 +1597,43 @@ _Implemented: 2026-04-24_
 - No IsarLink migration required ✅
 - Original `isImported`/`isPastReading` flags preserved during restore ✅
 
+---
+
+## Phase 14.4: UI Implementation for Advanced Backfill & Windowed Heatmap
+
+_Implemented: 2026-06-28_
+
+### Task Summary
+
+Implemented UI components and isolated backend providers for **Ghost Sync (Triple-Mode Backfill)** and **Time-Traveling Heatmap** features. All operations respect `SYSTEM_BOUNDARIES.md` for thread safety and Isar lifecycle management.
+
+| Task | Description | Status |
+|------|-------------|--------|
+| T14-01 | Create isolated Backfill Provider & Service | [x] |
+| T14-02 | Create isolated Heatmap Provider | [x] |
+| T14-03 | Implement Ghost Sync Modal UI | [x] |
+| T14-04 | Add Ghost Sync trigger to DetailsScreen | [x] |
+| T14-05 | Implement Heatmap Year Selector | [x] |
+| T14-06 | Integrate windowed heatmap logic | [x] |
+
+### Architectural Highlights
+- **Thread Safety:** `BackfillService` and `yearlyHeatmapProvider` both use isolate computations (`Isolate.run()` and `compute()`) to interact with the database in bulk without blocking the 120Hz main UI thread.
+- **Isar Lifecycle Safety:** Every isolate opens its own Isar instance and strictly closes it inside a `finally` block, adhering to SYSTEM_BOUNDARIES Rule §1.
+- **Analytics Segregation:** Ghost Sync leverages the existing `isPastReading` flag on the `ReadingLog` schema. Stealth mode uses `isPastReading: true` (hidden from heatmap), while Spread/Custom Date use `isPastReading: false` (visible on heatmap).
+- **Void Ink Native:** All UI components (modals, selectors) bypass raw `Colors.xxx` in favor of dynamic `Theme.of(context).extension<VoidInkColors>()`.
+- **Intelligent Resource Usage:** The `_WindowedHeatmap` widget uses an `AnimatedSwitcher` to seamlessly transition between years. For the current calendar year, it intelligently reuses `snapshot.dailyTotals` to avoid redundant database queries.
+
+### Files Created
+| File | Purpose |
+|------|---------|
+| `lib/features/library/providers/backfill_provider.dart` | Advanced backfill business logic & enum |
+| `lib/features/insights/providers/heatmap_provider.dart` | Historical heatmap data fetcher |
+| `lib/features/details/presentation/widgets/ghost_sync_modal.dart` | 3-way segmented bottom sheet UI |
+| `lib/features/insights/widgets/heatmap_year_selector.dart` | Year navigation control |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `lib/features/details/screens/details_screen.dart` | Added Ghost Sync trigger below chapter stepper |
+| `lib/features/insights/screens/insights_screen.dart` | Injected year selector and dynamic heatmap widget |
+| `lib/features/insights/widgets/reading_heatmap.dart` | Added `year` parameter for precise bounds generation |

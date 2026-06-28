@@ -16,6 +16,7 @@ import 'package:storysync/shared/widgets/status_badge.dart';
 import 'package:storysync/shared/widgets/edit_manga_dialog.dart';
 import 'package:storysync/features/details/presentation/controllers/palette_controller.dart';
 import 'package:storysync/core/utils/haptic_util.dart';
+import 'package:storysync/features/details/presentation/widgets/ghost_sync_modal.dart';
 
 /// Manga details screen with hero header and tracker console
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -936,6 +937,40 @@ class _TrackerConsole extends StatelessWidget {
             currentChapter: effectiveChapter,
             totalChapters: manga.totalChapters,
             onChanged: onChapterChanged,
+          ),
+          const SizedBox(height: AppDimensions.space16),
+
+          // Ghost Sync trigger — discrete, secondary CTA
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                StorySyncHaptics.lightTap();
+                showGhostSyncModal(
+                  context,
+                  mangaDexId: manga.mangaDexId,
+                  currentChapter: effectiveChapter,
+                );
+              },
+              icon: Icon(
+                Icons.history_rounded,
+                size: 16,
+                color: colors.textSecondary,
+              ),
+              label: Text(
+                'Sync Past Progress',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.space12,
+                  vertical: AppDimensions.space4,
+                ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
           ),
         ],
       ),

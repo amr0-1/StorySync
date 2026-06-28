@@ -5,6 +5,8 @@ import 'package:storysync/core/theme/app_dimensions.dart';
 import 'package:storysync/core/theme/app_text_styles.dart';
 import 'package:storysync/features/insights/data/analytics_models.dart';
 import 'package:storysync/features/insights/data/analytics_providers.dart';
+import 'package:storysync/features/insights/providers/heatmap_provider.dart';
+import 'package:storysync/features/insights/widgets/heatmap_year_selector.dart';
 import 'package:storysync/features/insights/widgets/insight_cards.dart';
 import 'package:storysync/features/insights/widgets/personality_header.dart';
 import 'package:storysync/features/insights/widgets/reading_heatmap.dart';
@@ -125,10 +127,13 @@ class _InsightsBody extends ConsumerWidget {
         ),
         const SizedBox(height: AppDimensions.space24),
 
-        // ── Interactive Heatmap & Weekly Summary ───────────────
-        ReadingHeatmap(
-          dailyTotals: snapshot.dailyTotals,
-          daysToShow: 150,
+        // ── Heatmap Year Selector + Windowed Heatmap ───────────
+        const HeatmapYearSelector(),
+        const SizedBox(height: AppDimensions.space8),
+
+        // Interactive Heatmap — conditionally windowed
+        _WindowedHeatmap(
+          currentYearDailyTotals: snapshot.dailyTotals,
           onDayTapped: (date) {
             _showDayDetailSheet(context, ref, date, colors);
           },
@@ -198,6 +203,181 @@ class _InsightsBody extends ConsumerWidget {
       builder: (sheetContext) {
         return _DayDetailBottomSheet(date: date, colors: colors);
       },
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Windowed Heatmap (Year-Aware)
+// ════════════════════════════════════════════════════════════════════
+
+/// Conditionally renders the heatmap for the selected year.
+///
+/// **Optimisation:** When the selected year is the current year, we reuse
+/// `snapshot.dailyTotals` from the already-loaded [analyticsSnapshotProvider],
+/// avoiding a redundant isolate query. For historical years, we watch
+/// [yearlyHeatmapProvider] which runs a dedicated isolate fetch.
+class _WindowedHeatmap extends ConsumerWidget {
+  final Map<DateTime, int> currentYearDailyTotals;
+  final ValueChanged<DateTime>? onDayTapped;
+
+  const _WindowedHeatmap({
+    required this.currentYearDailyTotals,
+    this.onDayTapped,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<VoidInkColors>()!;
+    final selectedYear = ref.watch(heatmapYearProvider);
+    final currentYear = DateTime.now().year;
+    final isCurrentYear = selectedYear == currentYear;
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: isCurrentYear
+          ? ReadingHeatmap(
+              key: ValueKey('heatmap_$currentYear'),
+              dailyTotals: currentYearDailyTotals,
+              daysToShow: 150,
+              onDayTapped: onDayTapped,
+            )
+          : _HistoricalYearHeatmap(
+              key: ValueKey('heatmap_$selectedYear'),
+              year: selectedYear,
+              colors: colors,
+              onDayTapped: onDayTapped,
+            ),
+    );
+  }
+}
+
+/// Renders the heatmap for a non-current year, backed by
+/// [yearlyHeatmapProvider] with proper loading/error states.
+class _HistoricalYearHeatmap extends ConsumerWidget {
+  final int year;
+  final VoidInkColors colors;
+  final ValueChanged<DateTime>? onDayTapped;
+
+  const _HistoricalYearHeatmap({
+    super.key,
+    required this.year,
+    required this.colors,
+    this.onDayTapped,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final heatmapAsync = ref.watch(yearlyHeatmapProvider);
+
+    return heatmapAsync.when(
+      data: (dailyTotals) => ReadingHeatmap(
+        dailyTotals: dailyTotals,
+        year: year,
+        onDayTapped: onDayTapped,
+      ),
+      loading: () => _HeatmapShimmer(colors: colors),
+      error: (error, _) => Container(
+        padding: const EdgeInsets.all(AppDimensions.space16),
+        decoration: BoxDecoration(
+          color: colors.inkSurface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+          border: Border.all(
+            color: colors.inkBorder,
+            width: AppDimensions.borderThin,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 16,
+              color: colors.statusDropped,
+            ),
+            const SizedBox(width: AppDimensions.space8),
+            Text(
+              'Failed to load heatmap for $year',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shimmer loading placeholder for the heatmap.
+class _HeatmapShimmer extends StatefulWidget {
+  final VoidInkColors colors;
+
+  const _HeatmapShimmer({required this.colors});
+
+  @override
+  State<_HeatmapShimmer> createState() => _HeatmapShimmerState();
+}
+
+class _HeatmapShimmerState extends State<_HeatmapShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        color: widget.colors.inkSurface
+            .withValues(alpha: _animation.value),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusSM),
+        border: Border.all(
+          color: widget.colors.inkBorder,
+          width: AppDimensions.borderThin,
+        ),
+      ),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              widget.colors.goldSpark.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:typed_data';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:isar/isar.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:storysync/core/database/isar_service.dart';
 import 'package:storysync/features/library/data/models/manga_item.dart';
@@ -229,57 +229,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _handleExport() async {
     try {
+      // Step 1: Resolve paths on the main thread (lightweight, no object graphs)
       final isarService = ref.read(isarServiceProvider);
-      final allManga = await isarService.getAllManga();
-      final allReadingLogs = await isarService.getAllReadingLogs();
+      final dbDirectory = await isarService.getDbDirectory();
 
-      final Map<String, dynamic> exportData = {
-        'manga': allManga.map((e) => e.toJson()).toList(),
-        'readingLogs': allReadingLogs.map((e) => e.toJson()).toList(),
-        'exportedAt': DateTime.now().toIso8601String(),
-        'version': '2.0.0',
-      };
+      // Step 2: Write to a temp file inside the app's own directory first.
+      // This avoids SAF/content-URI issues on Android where File() can't
+      // write to picker-returned URIs directly.
+      final tempFilePath = '$dbDirectory/storysync_export_tmp.json';
 
-      // Move the massive string serialization to a background thread
-      final String jsonString = await Isolate.run(() => jsonEncode(exportData));
-
-      final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString));
-
-      String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save your library backup',
-        fileName: 'storysync_library.json',
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        bytes: bytes,
+      // Step 3: Launch the hardened isolate worker — only primitives cross the boundary
+      final bool success = await Isolate.run(
+        () => _exportWorker(dbDirectory, tempFilePath),
       );
 
-      if (outputFile != null) {
-        // Only write manually if it's not Android, iOS, or Web where file_picker handles writing the bytes
-        try {
-          if (!Platform.isAndroid && !Platform.isIOS) {
-            final file = File(outputFile);
-            await file.writeAsString(jsonString);
-          }
-        } catch (e) {
-          // Platform.isAndroid can throw on Web, so we ignore it if it happens
-        }
+      if (!success) throw Exception('Isolate worker returned failure');
 
-        if (mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              VoidInkSnackbar.showSuccess(
-                context,
-                'Library exported successfully!',
-              );
-            }
-          });
+      final tempFile = File(tempFilePath);
+      if (!await tempFile.exists()) throw Exception('Export file missing');
+
+      // Step 4: The Native Stream Handoff (Zero RAM impact)
+      // On mobile we pass the URI path, NOT the bytes. The OS handles
+      // the heavy lifting via the native share sheet.
+      if (Platform.isAndroid || Platform.isIOS) {
+        final xFile = XFile(tempFilePath, mimeType: 'application/json');
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [xFile],
+            subject: 'StorySync Library Backup',
+            text: 'storysync_library.json',
+          ),
+        );
+      } else {
+        // Desktop fallback — FilePicker for a direct file copy
+        String? outputFile = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save your library backup',
+          fileName: 'storysync_library.json',
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (outputFile != null) {
+          await tempFile.copy(outputFile);
         }
+      }
+
+      if (mounted) {
+        VoidInkSnackbar.showSuccess(context, 'Library prepared for export!');
       }
     } catch (e) {
       if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) VoidInkSnackbar.showError(context, 'Export failed: $e');
-        });
+        VoidInkSnackbar.showError(context, 'Export failed: $e');
       }
     }
   }
@@ -490,6 +489,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       },
     );
+  }
+}
+
+// ============================================================
+// HARDENED EXPORT WORKER — Runs entirely in a background isolate.
+// ============================================================
+//
+// Accepts only primitive strings (dbDirectory, targetFilePath) so
+// zero heavyweight objects cross the isolate boundary.
+//
+// Architecture:
+//   1. Opens its own Isar instance synchronously (background-safe).
+//   2. Queries all data with findAllSync() — no async overhead.
+//   3. Streams JSON directly to disk via JsonUtf8Encoder, bypassing
+//      the massive contiguous String allocation from jsonEncode().
+//   4. Returns a simple bool across the boundary.
+//   5. Isar.close() is guaranteed in a finally block to prevent
+//      native Rust thread deadlocks.
+// ============================================================
+Future<bool> _exportWorker(String dbDirectory, String targetFilePath) async {
+  Isar? isar;
+  try {
+    // 1. Open a background-only Isar instance synchronously
+    isar = Isar.openSync(
+      [MangaItemSchema, ReadingLogSchema],
+      directory: dbDirectory,
+      name: 'storysync_db',
+    );
+
+    // 2. Execute findAllSync() queries — entire object graph stays in-isolate
+    final allManga = isar.mangaItems
+        .where()
+        .sortByLastUpdatedDesc()
+        .findAllSync();
+    final allReadingLogs = isar.readingLogs.where().findAllSync();
+
+    // 3. Map to plain Dart Maps (JSON-serializable, no Isar proxies)
+    final Map<String, dynamic> exportData = {
+      'manga': allManga.map((e) => e.toJson()).toList(),
+      'readingLogs': allReadingLogs.map((e) => e.toJson()).toList(),
+      'exportedAt': DateTime.now().toIso8601String(),
+      'version': '2.0.0',
+    };
+
+    // 4. CRITICAL: Stream JSON directly to disk via JsonUtf8Encoder.
+    //    This bypasses the massive contiguous string allocation that
+    //    jsonEncode() creates, which was the root cause of the OOM crash.
+    final sink = File(targetFilePath).openWrite();
+    await Stream<Object?>.value(exportData)
+        .transform(JsonUtf8Encoder())
+        .pipe(sink);
+
+    return true;
+  } catch (e) {
+    // USE standard print() IN ISOLATES! debugPrint can crash isolates.
+    // ignore: avoid_print
+    print('Export worker error: $e');
+    return false;
+  } finally {
+    // 5. ALWAYS close Isar to prevent native Rust thread deadlocks
+    isar?.close();
   }
 }
 
