@@ -120,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: AppDimensions.space4),
                 Text(
-                  'Version 1.1.0',
+                  'Version 1.2.0',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: colors.textHint,
                   ),
@@ -537,9 +537,9 @@ Future<bool> _exportWorker(String dbDirectory, String targetFilePath) async {
     //    This bypasses the massive contiguous string allocation that
     //    jsonEncode() creates, which was the root cause of the OOM crash.
     final sink = File(targetFilePath).openWrite();
-    await Stream<Object?>.value(exportData)
-        .transform(JsonUtf8Encoder())
-        .pipe(sink);
+    await Stream<Object?>.value(
+      exportData,
+    ).transform(JsonUtf8Encoder()).pipe(sink);
 
     return true;
   } catch (e) {
